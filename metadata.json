@@ -1,0 +1,6 @@
+{
+  "name": "RakshaSetu | National Distress Management System",
+  "description": "Public-service platform for AI-assisted distress identification, preliminary risk analysis, human counsellor review, multi-channel support referral, and continuous monitoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
