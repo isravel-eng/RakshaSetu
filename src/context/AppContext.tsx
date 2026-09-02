@@ -150,7 +150,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [citizenSession, setCitizenSession] = useState<CitizenSession | null>(() =>
     loadCitizenSession()
   );
-  const [hasConsented, setHasConsented] = useState<boolean>(() => loadConsent() || true);
+  const [hasConsented, setHasConsented] = useState<boolean>(() => loadConsent() ?? false);
   const [nhaaData, setNhaaData] = useState<NHAACaseData>(() => loadNhaaData());
   const [isNhaaSyncing, setIsNhaaSyncing] = useState<boolean>(false);
   const [alerts, setAlerts] = useState<CounsellorAlert[]>(() => loadCounsellorAlerts());
@@ -378,7 +378,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCitizenProfile(DEFAULT_PROFILE);
     setScreeningAnswers(DEFAULT_SCREENING);
     setCitizenSession(null);
-    setHasConsented(true);
+    setHasConsented(false);
     setNhaaData(freshNhaa);
     setAlerts([]);
     setActiveAlert(null);
