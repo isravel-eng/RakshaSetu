@@ -122,6 +122,29 @@ export const CaseReview: React.FC = () => {
       {/* Human in the Loop Ethics Banner */}
       <EthicsBanner type="human-validation" />
 
+      {/* Emergency Alert Banner if Emergency Flag is Active */}
+      {(currentCase.emergencyFlag || currentCase.aiAssessment.emergencyFlag || currentCase.riskLevel === 'CRITICAL') && (
+        <div className="p-4 bg-[#fff0f0] border-2 border-[#ba1a1a] rounded-xl flex items-center justify-between gap-4 shadow-sm animate-pulse">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#ba1a1a] text-3xl">e911_emergency</span>
+            <div>
+              <h4 className="font-bold text-sm text-[#ba1a1a] uppercase tracking-wide flex items-center gap-2">
+                <span>Critical Crisis Alert: Immediate Clinical Outreach Required</span>
+                <span className="text-[10px] bg-[#ba1a1a] text-white px-2 py-0.5 rounded font-mono font-bold">
+                  EMERGENCY TIER-1
+                </span>
+              </h4>
+              <p className="text-xs text-[#93000a] mt-0.5">
+                Acute self-harm/crisis markers detected. Initiate immediate tele-crisis triage protocol or physical dispatch link.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-mono bg-[#ba1a1a] text-white px-3 py-1 rounded font-bold shrink-0">
+            FLAGGED: IMMEDIATE
+          </span>
+        </div>
+      )}
+
       {/* Validation Status Notification if already validated */}
       {validationSuccess && (
         <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center justify-between gap-4">
@@ -195,14 +218,30 @@ export const CaseReview: React.FC = () => {
                 <span className="material-symbols-outlined text-base text-[#002046]">psychology</span>
                 <span>AI Clinical Explanation</span>
               </h3>
-              <span className="text-xs font-mono bg-[#d6e3ff] text-[#002046] px-2 py-0.5 rounded font-bold">
-                Confidence: {currentCase.aiAssessment.confidenceScore}%
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-mono bg-[#002046] text-white px-2 py-0.5 rounded font-bold">
+                  {currentCase.priority || currentCase.aiAssessment.priority || 'URGENT'}
+                </span>
+                <span className="text-xs font-mono bg-[#d6e3ff] text-[#002046] px-2 py-0.5 rounded font-bold">
+                  Confidence: {currentCase.aiAssessment.confidenceScore}%
+                </span>
+              </div>
             </div>
 
             <p className="text-xs text-[#1b365d] leading-relaxed">
               {currentCase.aiAssessment.explanation}
             </p>
+
+            {/* AI Recommendation Box */}
+            <div className="p-3 rounded-lg bg-white/80 border border-[#aec7f7] text-xs space-y-1">
+              <span className="font-bold text-[#002046] block">
+                {currentCase.aiAssessment.recommendedTier}
+              </span>
+              <p className="text-[#545f72] text-[11px]">
+                {currentCase.aiAssessment.recommendedAction ||
+                  'Specialist clinical triage and structured psychological support recommended.'}
+              </p>
+            </div>
 
             {/* Key Risk Factors */}
             <div className="space-y-1 pt-1">
@@ -233,6 +272,23 @@ export const CaseReview: React.FC = () => {
                 ))}
               </ul>
             </div>
+
+            {/* Suggested Interventions */}
+            {currentCase.aiAssessment.suggestedInterventions && currentCase.aiAssessment.suggestedInterventions.length > 0 && (
+              <div className="space-y-1 pt-1 border-t border-[#aec7f7]/40">
+                <span className="text-[11px] font-bold text-[#002046] uppercase tracking-wider block">
+                  AI Suggested Interventions:
+                </span>
+                <ul className="space-y-1 text-[11px] text-[#545f72]">
+                  {currentCase.aiAssessment.suggestedInterventions.map((si, idx) => (
+                    <li key={idx} className="flex items-start gap-1.5">
+                      <span className="text-[#002046] font-bold">→</span>
+                      <span>{si}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
 

@@ -15,14 +15,17 @@ export const NavigationHeader: React.FC = () => {
 
   const screens: { id: ScreenId; label: string; tier: string }[] = [
     { id: 'public-support', label: '1. RakshaSetu | Public Support Platform', tier: 'Public' },
-    { id: 'citizen-profile', label: '2. Citizen Profile Setup', tier: 'Public' },
-    { id: 'screening-intro', label: '3. Screening Introduction', tier: 'Public' },
-    { id: 'screening', label: '4. Screening (4-Step Clinical PHQ/GAD)', tier: 'Public' },
-    { id: 'assessment-result', label: '5. Assessment Result & AI Insights', tier: 'Public' },
-    { id: 'case-review', label: '6. Case Review: RS-2026-00124 (Human Validation)', tier: 'Counsellor' },
-    { id: 'district-dashboard', label: '7. District Dashboard | Chennai', tier: 'District' },
-    { id: 'state-dashboard', label: '8. State Dashboard | Tamil Nadu', tier: 'State' },
-    { id: 'national-command', label: '9. National Command Center', tier: 'National' }
+    { id: 'citizen-login', label: '2. Citizen Login', tier: 'Public' },
+    { id: 'citizen-consent', label: '3. Consent & Data Protection', tier: 'Public' },
+    { id: 'citizen-profile', label: '4. Citizen Profile Setup', tier: 'Public' },
+    { id: 'screening-intro', label: '5. Screening Introduction', tier: 'Public' },
+    { id: 'screening', label: '6. Screening (4-Step Clinical PHQ/GAD)', tier: 'Public' },
+    { id: 'screening-review', label: '7. Review & Submit', tier: 'Public' },
+    { id: 'assessment-result', label: '8. Assessment Result', tier: 'Public' },
+    { id: 'case-review', label: '9. Case Review: RS-2026-00124 (Human Validation)', tier: 'Counsellor' },
+    { id: 'district-dashboard', label: '10. District Dashboard | Chennai', tier: 'District' },
+    { id: 'state-dashboard', label: '11. State Dashboard | Tamil Nadu', tier: 'State' },
+    { id: 'national-command', label: '12. National Command Center', tier: 'National' }
   ];
 
   return (
@@ -102,7 +105,7 @@ export const NavigationHeader: React.FC = () => {
                 className="absolute right-0 mt-2 w-80 bg-white text-[#191c1e] rounded-xl shadow-xl border border-[#c4c6cf] py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
               >
                 <div className="px-3 py-1.5 border-b border-[#eceef0] flex items-center justify-between text-xs text-[#545f72]">
-                  <span className="font-semibold uppercase tracking-wider text-[11px]">All 9 Prototype Screens</span>
+                  <span className="font-semibold uppercase tracking-wider text-[11px]">Prototype Screens</span>
                   <span className="text-[10px] text-[#74777f]">Click to jump</span>
                 </div>
                 <div className="max-h-96 overflow-y-auto py-1">

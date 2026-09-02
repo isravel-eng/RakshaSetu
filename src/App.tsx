@@ -4,11 +4,14 @@ import { NavigationHeader } from './components/NavigationHeader';
 import { RoleSwitcherModal } from './components/RoleSwitcherModal';
 import { ScreenContainer } from './components/ScreenContainer';
 
-// 9 Prototype Screens
+// Prototype screens
 import { PublicSupportPlatform } from './pages/PublicSupportPlatform';
+import { CitizenLogin } from './pages/CitizenLogin';
+import { CitizenConsent } from './pages/CitizenConsent';
 import { CitizenProfileSetup } from './pages/CitizenProfileSetup';
 import { ScreeningIntro } from './pages/ScreeningIntro';
 import { ScreeningFlow } from './pages/ScreeningFlow';
+import { ScreeningReview } from './pages/ScreeningReview';
 import { AssessmentResult } from './pages/AssessmentResult';
 import { CaseReview } from './pages/CaseReview';
 import { DistrictDashboard } from './pages/DistrictDashboard';
@@ -22,12 +25,18 @@ const MainScreenRouter: React.FC = () => {
     switch (currentScreen) {
       case 'public-support':
         return <PublicSupportPlatform />;
+      case 'citizen-login':
+        return <CitizenLogin />;
+      case 'citizen-consent':
+        return <CitizenConsent />;
       case 'citizen-profile':
         return <CitizenProfileSetup />;
       case 'screening-intro':
         return <ScreeningIntro />;
       case 'screening':
         return <ScreeningFlow />;
+      case 'screening-review':
+        return <ScreeningReview />;
       case 'assessment-result':
         return <AssessmentResult />;
       case 'case-review':

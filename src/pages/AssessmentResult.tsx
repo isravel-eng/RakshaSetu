@@ -48,19 +48,59 @@ export const AssessmentResult: React.FC = () => {
             </span>
             <div className="relative flex items-center justify-center">
               {/* Radial representation */}
-              <div className="w-28 h-28 rounded-full border-8 border-[#ba1a1a]/20 flex items-center justify-center bg-white shadow-inner">
+              <div
+                className={`w-28 h-28 rounded-full border-8 flex items-center justify-center bg-white shadow-inner ${
+                  currentCase.riskLevel === 'CRITICAL'
+                    ? 'border-[#ba1a1a]/30'
+                    : currentCase.riskLevel === 'HIGH'
+                    ? 'border-amber-500/30'
+                    : currentCase.riskLevel === 'MODERATE'
+                    ? 'border-[#002046]/30'
+                    : 'border-emerald-600/30'
+                }`}
+              >
                 <div className="text-center">
-                  <span className="text-3xl font-extrabold text-[#ba1a1a] font-mono">
+                  <span
+                    className={`text-3xl font-extrabold font-mono ${
+                      currentCase.riskLevel === 'CRITICAL'
+                        ? 'text-[#ba1a1a]'
+                        : currentCase.riskLevel === 'HIGH'
+                        ? 'text-amber-700'
+                        : currentCase.riskLevel === 'MODERATE'
+                        ? 'text-[#002046]'
+                        : 'text-emerald-700'
+                    }`}
+                  >
                     {currentCase.distressScore}
                   </span>
                   <span className="text-xs text-[#74777f] block font-mono">/ 100</span>
                 </div>
               </div>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ba1a1a] text-white text-xs font-bold tracking-wide uppercase">
-              <span className="material-symbols-outlined text-sm">warning</span>
-              <span>{currentCase.riskLevel} DISTRESS LEVEL</span>
+
+            <div className="flex flex-col items-center gap-1.5 w-full">
+              <div
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-white text-xs font-bold tracking-wide uppercase shadow-2xs ${
+                  currentCase.riskLevel === 'CRITICAL'
+                    ? 'bg-[#ba1a1a]'
+                    : currentCase.riskLevel === 'HIGH'
+                    ? 'bg-amber-700'
+                    : currentCase.riskLevel === 'MODERATE'
+                    ? 'bg-[#002046]'
+                    : 'bg-emerald-700'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">
+                  {currentCase.riskLevel === 'CRITICAL' ? 'emergency' : currentCase.riskLevel === 'HIGH' ? 'warning' : 'verified'}
+                </span>
+                <span>{currentCase.riskLevel} DISTRESS LEVEL</span>
+              </div>
+
+              <span className="text-[11px] font-mono font-bold text-[#002046] bg-[#d6e3ff] px-2.5 py-0.5 rounded-md">
+                PRIORITY: {currentCase.priority || currentCase.aiAssessment.priority || (currentCase.riskLevel === 'CRITICAL' ? 'IMMEDIATE' : currentCase.riskLevel === 'HIGH' ? 'URGENT' : currentCase.riskLevel === 'MODERATE' ? 'PRIORITY' : 'ROUTINE')}
+              </span>
             </div>
+
             <p className="text-[11px] text-[#545f72] max-w-xs">
               Based on standardized PHQ-4 & GAD-2 screening markers.
             </p>
@@ -80,16 +120,19 @@ export const AssessmentResult: React.FC = () => {
               </p>
             </div>
 
-            {/* Recommended Tier Card */}
-            <div className="p-3.5 rounded-lg bg-[#d6e3ff]/50 border border-[#87a0cd]/60 flex items-start gap-3">
-              <span className="material-symbols-outlined text-[#002046] text-xl shrink-0 mt-0.5">verified</span>
-              <div className="text-xs text-[#002046]">
-                <strong className="block text-sm font-bold">
-                  Recommended Intervention Tier: {currentCase.aiAssessment.recommendedTier}
-                </strong>
-                <span>
-                  Immediate clinical consultation and structured psychological support recommended for {citizenProfile.district || 'Chennai'} district.
-                </span>
+            {/* Recommended Tier Card & Next Action */}
+            <div className="p-3.5 rounded-lg bg-[#d6e3ff]/50 border border-[#87a0cd]/60 space-y-1.5">
+              <div className="flex items-start gap-2.5">
+                <span className="material-symbols-outlined text-[#002046] text-xl shrink-0 mt-0.5">verified</span>
+                <div className="text-xs text-[#002046]">
+                  <strong className="block text-sm font-bold">
+                    Recommended Intervention Tier: {currentCase.aiAssessment.recommendedTier}
+                  </strong>
+                  <span className="text-[12px] block mt-0.5">
+                    {currentCase.aiAssessment.recommendedAction ||
+                      `Immediate clinical consultation and structured psychological support recommended for ${citizenProfile.district || 'Chennai'} district.`}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -111,7 +154,7 @@ export const AssessmentResult: React.FC = () => {
                 <span className="text-[#74777f] block text-[11px]">Clinical Confidence</span>
                 <span className="font-semibold text-emerald-800 flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">check_circle</span>
-                  {currentCase.aiAssessment.confidenceScore}% (High)
+                  {currentCase.aiAssessment.confidenceScore}% ({currentCase.aiAssessment.confidenceLevel || 'High'})
                 </span>
               </div>
             </div>
@@ -176,6 +219,37 @@ export const AssessmentResult: React.FC = () => {
                 <div className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-full font-medium flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   <span>Assigned: Dr. Priya Raman (Lead Clinical Psychologist)</span>
+                </div>
+              </div>
+
+              {/* Contributing Factors & Protective Factors Breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg bg-[#fff8f7] border border-[#ffdad6] space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#ba1a1a] uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-base">analytics</span>
+                    <span>Key Contributing Factors</span>
+                  </div>
+                  <ul className="text-xs text-[#44474e] space-y-1.5 pl-3 list-disc">
+                    {currentCase.aiAssessment.keyRiskFactors.map((factor, idx) => (
+                      <li key={idx} className="leading-snug">
+                        {factor}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="p-4 rounded-lg bg-[#f0fdf4] border border-emerald-200 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-base">shield_with_heart</span>
+                    <span>Protective Factors</span>
+                  </div>
+                  <ul className="text-xs text-[#44474e] space-y-1.5 pl-3 list-disc">
+                    {currentCase.aiAssessment.protectiveFactors.map((factor, idx) => (
+                      <li key={idx} className="leading-snug">
+                        {factor}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
 

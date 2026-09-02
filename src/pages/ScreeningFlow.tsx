@@ -6,17 +6,14 @@ export const ScreeningFlow: React.FC = () => {
   const {
     screeningAnswers,
     updateScreeningAnswers,
-    submitScreening,
-    navigateTo,
-    navigateBack
+    navigateTo
   } = useApp();
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isRecordingVoice, setIsRecordingVoice] = useState<boolean>(false);
 
   const handleStep4Completion = () => {
-    submitScreening();
-    navigateTo('assessment-result', 'push');
+    navigateTo('screening-review', 'push');
   };
 
   const stepTitles = [
@@ -452,7 +449,7 @@ export const ScreeningFlow: React.FC = () => {
                 className="w-full sm:w-auto px-7 py-3 bg-[#002046] hover:bg-[#1b365d] text-white font-bold text-sm sm:text-base rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-lg">fact_check</span>
-                <span>Generate Assessment & View Results</span>
+                <span>Review Answers</span>
               </button>
             )}
           </div>

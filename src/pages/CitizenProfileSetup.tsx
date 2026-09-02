@@ -5,8 +5,8 @@ export const CitizenProfileSetup: React.FC = () => {
   const {
     citizenProfile,
     updateCitizenProfile,
-    navigateTo,
-    navigateBack
+    hasConsented,
+    navigateTo
   } = useApp();
 
   const tamilNaduDistricts = [
@@ -52,7 +52,7 @@ export const CitizenProfileSetup: React.FC = () => {
           <span className="text-[#002046] font-semibold">Citizen Profile Setup</span>
         </div>
         <span className="text-xs font-mono font-bold bg-[#d6e3ff] text-[#002046] px-2.5 py-1 rounded-full">
-          Step 1 of 3
+          Step 2 of 5
         </span>
       </div>
 
@@ -286,7 +286,13 @@ export const CitizenProfileSetup: React.FC = () => {
 
           <button
             id="continue-to-screening-btn"
-            onClick={() => navigateTo('screening-intro', 'push')}
+            onClick={() => {
+              if (!hasConsented) {
+                navigateTo('citizen-consent', 'push_back');
+                return;
+              }
+              navigateTo('screening', 'push');
+            }}
             className="w-full sm:w-auto px-6 py-2.5 bg-[#002046] hover:bg-[#1b365d] text-white font-bold text-sm rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>Continue to Screening</span>

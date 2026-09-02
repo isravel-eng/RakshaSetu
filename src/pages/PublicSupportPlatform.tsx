@@ -3,7 +3,19 @@ import { useApp } from '../context/AppContext';
 import { EthicsBanner } from '../components/EthicsBanner';
 
 export const PublicSupportPlatform: React.FC = () => {
-  const { navigateTo } = useApp();
+  const { navigateTo, citizenSession, hasConsented } = useApp();
+
+  const startCitizenFlow = () => {
+    if (!citizenSession) {
+      navigateTo('citizen-login', 'push');
+      return;
+    }
+    if (!hasConsented) {
+      navigateTo('citizen-consent', 'push');
+      return;
+    }
+    navigateTo('citizen-profile', 'push');
+  };
 
   return (
     <div className="w-full min-h-full pb-16">
@@ -29,7 +41,7 @@ export const PublicSupportPlatform: React.FC = () => {
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
             <button
               id="get-support-now-btn"
-              onClick={() => navigateTo('citizen-profile', 'push')}
+              onClick={startCitizenFlow}
               className="w-full sm:w-auto px-6 py-3.5 bg-white text-[#002046] font-bold text-sm sm:text-base rounded-xl shadow-lg hover:bg-[#d6e3ff] transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer"
             >
               <span className="material-symbols-outlined text-xl">vital_signs</span>
@@ -156,7 +168,7 @@ export const PublicSupportPlatform: React.FC = () => {
               <h3 className="text-xl font-bold text-[#002046] mt-0.5">How RakshaSetu Assists You</h3>
             </div>
             <button
-              onClick={() => navigateTo('citizen-profile', 'push')}
+              onClick={startCitizenFlow}
               className="px-4 py-2 bg-[#002046] text-white text-xs font-semibold rounded-lg hover:bg-[#1b365d] transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <span>Begin Your Screening</span>

@@ -1,13 +1,22 @@
 export type ScreenId =
   | 'public-support'
+  | 'citizen-login'
+  | 'citizen-consent'
   | 'screening-intro'
   | 'screening'
+  | 'screening-review'
   | 'citizen-profile'
   | 'assessment-result'
   | 'state-dashboard'
   | 'district-dashboard'
   | 'case-review'
   | 'national-command';
+
+export interface CitizenSession {
+  phone: string;
+  displayName: string;
+  loggedInAt: string;
+}
 
 export type UserRole =
   | 'citizen'
@@ -48,7 +57,29 @@ export interface ScreeningAnswers {
   voiceNoteRecorded: boolean;
 }
 
-export type RiskLevel = 'CRITICAL' | 'HIGH' | 'MODERATE' | 'MILD';
+export type RiskLevel = 'CRITICAL' | 'HIGH' | 'MODERATE' | 'LOW' | 'MILD';
+
+export type TriagePriority = 'ROUTINE' | 'PRIORITY' | 'URGENT' | 'IMMEDIATE';
+
+export type ConfidenceLevel = 'LOW' | 'MEDIUM' | 'HIGH';
+
+export interface RiskAssessmentResult {
+  riskLevel: RiskLevel;
+  score: number; // 0-100
+  confidence: ConfidenceLevel;
+  confidenceScore: number;
+  priority: TriagePriority;
+  contributingFactors: string[];
+  protectiveFactors: string[];
+  recommendedAction: string;
+  explanation: string;
+  requiresHumanReview: boolean;
+  emergencyFlag: boolean;
+  recommendedTier: string;
+  distressCategory: string;
+  suggestedInterventions: string[];
+  disclaimer: string;
+}
 
 export type CaseStatus =
   | 'PENDING_REVIEW'
@@ -68,6 +99,8 @@ export interface CaseReviewData {
   distressScore: number; // 0-100
   riskLevel: RiskLevel;
   status: CaseStatus;
+  priority?: TriagePriority;
+  emergencyFlag?: boolean;
   screeningSummary: {
     phqScore: string;
     gadScore: string;
@@ -79,11 +112,17 @@ export interface CaseReviewData {
   aiAssessment: {
     distressCategory: string;
     confidenceScore: number;
+    confidenceLevel?: ConfidenceLevel;
+    priority?: TriagePriority;
+    emergencyFlag?: boolean;
     recommendedTier: string;
+    recommendedAction?: string;
     keyRiskFactors: string[];
     protectiveFactors: string[];
     explanation: string;
     suggestedInterventions: string[];
+    requiresHumanReview?: boolean;
+    disclaimer?: string;
   };
   counsellorReview: {
     assignedCounsellor: string;
