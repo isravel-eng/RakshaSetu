@@ -75,10 +75,10 @@ export const DistrictDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 Metric KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 5 Metric KPI Cards including NHAA Monitoring */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
         <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#545f72] uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-[#545f72] uppercase tracking-wider block">
             Active Triage Queue
           </span>
           <div className="flex items-baseline justify-between">
@@ -93,7 +93,22 @@ export const DistrictDashboard: React.FC = () => {
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#ba1a1a] uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-[#002046] uppercase tracking-wider block">
+            Monitored NHAA Cases
+          </span>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-extrabold text-[#002046] font-mono">
+              {INITIAL_DISTRICT_METRICS.monitoredCasesCount || 1420}
+            </span>
+            <span className="text-xs text-blue-800 bg-blue-50 px-2 py-0.5 rounded font-semibold">
+              Active Stream
+            </span>
+          </div>
+          <p className="text-[11px] text-[#74777f]">Continuous Tracking</p>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-[#ba1a1a] uppercase tracking-wider block">
             Critical Alerts
           </span>
           <div className="flex items-baseline justify-between">
@@ -108,7 +123,7 @@ export const DistrictDashboard: React.FC = () => {
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#545f72] uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-[#545f72] uppercase tracking-wider block">
             Counsellors Active
           </span>
           <div className="flex items-baseline justify-between">
@@ -122,8 +137,8 @@ export const DistrictDashboard: React.FC = () => {
           <p className="text-[11px] text-[#74777f]">Tele-MANAS & OPD Staff</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#545f72] uppercase tracking-wider block">
+        <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1 col-span-2 lg:col-span-1">
+          <span className="text-[10px] font-bold text-[#545f72] uppercase tracking-wider block">
             Avg Triage Time
           </span>
           <div className="flex items-baseline justify-between">
@@ -134,7 +149,7 @@ export const DistrictDashboard: React.FC = () => {
               &lt; 5m Target
             </span>
           </div>
-          <p className="text-[11px] text-[#74777f]">From citizen screening</p>
+          <p className="text-[11px] text-[#74777f]">From case event change</p>
         </div>
       </div>
 

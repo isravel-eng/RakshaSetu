@@ -41,13 +41,22 @@ export const CitizenLogin: React.FC = () => {
       </div>
 
       <div className="mt-6 bg-white rounded-xl border border-[#c4c6cf] shadow-sm p-6 sm:p-8">
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <div className="w-12 h-12 rounded-xl bg-white p-1 border border-slate-200 shadow-xs flex items-center justify-center overflow-hidden">
+            <img
+              src="/assets/rakshasetu-logo.png"
+              alt="RakshaSetu Logo"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#002046] text-2xl">login</span>
-            <h1 className="text-2xl font-bold text-[#002046] tracking-tight">Citizen Login</h1>
+            <h1 className="text-2xl font-bold text-[#002046] tracking-tight">Victim / Citizen Intake Login</h1>
           </div>
           <p className="text-sm text-[#545f72] leading-relaxed">
-            Sign in with your mobile number to start a confidential screening session. Prototype OTP is{' '}
+            Sign in with your mobile number to authorize permitted NHAA case information and start confidential distress triage. Prototype OTP is{' '}
             <strong>123456</strong> (optional).
           </p>
         </div>

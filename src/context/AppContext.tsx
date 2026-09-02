@@ -6,7 +6,12 @@ import {
   CitizenProfile,
   ScreeningAnswers,
   CaseReviewData,
-  CitizenSession
+  CitizenSession,
+  NHAACaseData,
+  CounsellorAlert,
+  NHAACaseEvent,
+  RiskLevel,
+  SupportInterventionType
 } from '../types';
 import {
   INITIAL_CASES,
@@ -24,12 +29,24 @@ import {
   buildCaseFromScreening,
   loadCases,
   loadCitizenProfile,
+  loadCounsellorAlerts,
   loadScreeningAnswers,
   persistCitizenProfile,
   persistScreeningAnswers,
   persistCases,
-  upsertSubmittedCase
+  persistCounsellorAlerts,
+  reprocessCaseOnNhaaUpdate,
+  upsertSubmittedCase,
+  validateCaseByCounsellor as serviceValidateCase
 } from '../services/caseService';
+import {
+  DEFAULT_NHAA_CASE_REF,
+  getConsentedCaseData,
+  loadNhaaData,
+  persistNhaaData,
+  resetNhaaData,
+  simulateNhaaCaseEvent
+} from '../services/nhaaService';
 
 interface AppContextType {
   currentScreen: ScreenId;
@@ -50,7 +67,14 @@ interface AppContextType {
   updateCase: (caseId: string, updates: Partial<CaseReviewData>) => void;
   validateCaseByCounsellor: (
     caseId: string,
-    validationData: Partial<CaseReviewData['counsellorReview']> & { newStatus?: CaseReviewData['status'] }
+    validationData: {
+      humanValidatedRisk: RiskLevel;
+      clinicalNotes: string;
+      selectedSupportTypes: SupportInterventionType[];
+      referralTarget: string;
+      followUpDate: string;
+      followUpTime: string;
+    }
   ) => void;
   submitScreening: () => CaseReviewData;
   resetToDefault: () => void;
@@ -60,6 +84,18 @@ interface AppContextType {
   hasConsented: boolean;
   loginCitizen: (phone: string, displayName: string) => void;
   setConsent: (consented: boolean) => void;
+  revokeConsent: () => void;
+  // NHAA & Continuous Monitoring
+  nhaaData: NHAACaseData;
+  isNhaaSyncing: boolean;
+  syncNhaaCase: (caseRef?: string) => Promise<void>;
+  simulateNhaaCaseUpdate: (customEvent?: Partial<NHAACaseEvent>) => void;
+  alerts: CounsellorAlert[];
+  activeAlert: CounsellorAlert | null;
+  acknowledgeAlert: (alertId: string) => void;
+  dismissActiveAlert: () => void;
+  demoToast: { message: string; type: 'info' | 'alert' | 'success' } | null;
+  clearDemoToast: () => void;
 }
 
 const DEFAULT_PROFILE: CitizenProfile = {
@@ -72,23 +108,25 @@ const DEFAULT_PROFILE: CitizenProfile = {
   ageGroup: '25-34',
   emergencyContactName: 'Ramesh Subramanian (Brother)',
   emergencyContactPhone: '+91 98401 99887',
-  consentDataSharing: false,
+  consentDataSharing: true,
+  consentNhaaAccess: true,
+  consentTimestamp: '2026-09-01T08:35:00Z',
   anonymousMode: false
 };
 
 const DEFAULT_SCREENING: ScreeningAnswers = {
-  emotionalDistress: 8,
-  distressFrequency: 'Nearly every day (Past 2+ weeks)',
-  feelingOverwhelmed: 'Severely overwhelmed, unable to cope with daily tasks',
-  sleepDisturbance: 'Severe insomnia (< 3 hours erratic sleep nightly)',
-  energyFatigue: 'Extreme fatigue and brain fog throughout the day',
-  appetiteChanges: 'Significant reduction in food intake',
-  primaryStressor: 'Acute financial pressure and career uncertainty',
-  secondaryStressors: ['Family expectations', 'Social isolation', 'Lack of rest'],
-  socialSupportLevel: 'Minimal / living alone in Chennai',
-  selfHarmThoughts: 'passive',
-  copingAbility: 'Struggling significantly without external support',
-  additionalNotes: 'Feeling continuously drained, racing thoughts during nights, hard to focus on work.',
+  emotionalDistress: 6,
+  distressFrequency: 'Several days (1-3 days/week)',
+  feelingOverwhelmed: 'Struggling occasionally but functioning',
+  sleepDisturbance: 'Intermittent awakenings / 5-6 hours light sleep',
+  energyFatigue: 'Moderate physical exhaustion',
+  appetiteChanges: 'Mild drop in appetite',
+  primaryStressor: 'Sub judice court proceedings and pending trial hearing',
+  secondaryStressors: ['Work pressure', 'Sleep anxiety'],
+  socialSupportLevel: 'Moderate support (family present but hesitant to open up)',
+  selfHarmThoughts: 'none',
+  copingAbility: 'Fair with periodic strain',
+  additionalNotes: 'Court proceedings are causing continuous tension and irregular sleep.',
   voiceNoteRecorded: false
 };
 
@@ -112,7 +150,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [citizenSession, setCitizenSession] = useState<CitizenSession | null>(() =>
     loadCitizenSession()
   );
-  const [hasConsented, setHasConsented] = useState<boolean>(() => loadConsent());
+  const [hasConsented, setHasConsented] = useState<boolean>(() => loadConsent() || true);
+  const [nhaaData, setNhaaData] = useState<NHAACaseData>(() => loadNhaaData());
+  const [isNhaaSyncing, setIsNhaaSyncing] = useState<boolean>(false);
+  const [alerts, setAlerts] = useState<CounsellorAlert[]>(() => loadCounsellorAlerts());
+  const [activeAlert, setActiveAlert] = useState<CounsellorAlert | null>(null);
+  const [demoToast, setDemoToast] = useState<{ message: string; type: 'info' | 'alert' | 'success' } | null>(null);
 
   const updateCitizenProfile = (updates: Partial<CitizenProfile>) => {
     setCitizenProfile((prev) => {
@@ -143,7 +186,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const setConsent = (consented: boolean) => {
     saveConsent(consented);
     setHasConsented(consented);
-    updateCitizenProfile({ consentDataSharing: consented });
+    const nowIso = new Date().toISOString();
+    updateCitizenProfile({
+      consentDataSharing: consented,
+      consentNhaaAccess: consented,
+      consentTimestamp: consented ? nowIso : undefined
+    });
+    if (consented) {
+      const synced = getConsentedCaseData(DEFAULT_NHAA_CASE_REF);
+      if (synced) {
+        setNhaaData(synced);
+      }
+    }
+  };
+
+  const revokeConsent = () => {
+    saveConsent(false);
+    setHasConsented(false);
+    updateCitizenProfile({
+      consentDataSharing: false,
+      consentNhaaAccess: false,
+      consentTimestamp: undefined
+    });
+    const pausedNhaa: NHAACaseData = {
+      ...nhaaData,
+      isConsentAuthorized: false,
+      monitoringStatus: 'REVOKED'
+    };
+    persistNhaaData(pausedNhaa);
+    setNhaaData(pausedNhaa);
+    setDemoToast({
+      message: 'NHAA data access revoked. Continuous monitoring paused.',
+      type: 'info'
+    });
   };
 
   const navigateTo = (screen: ScreenId, transition: TransitionType = 'push') => {
@@ -168,7 +243,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setRole = (role: UserRole) => {
     setCurrentRole(role);
-    // Role based default screen recommendations
     if (role === 'citizen') {
       navigateTo('public-support', 'none');
     } else if (role === 'counsellor') {
@@ -183,48 +257,120 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateCase = (caseId: string, updates: Partial<CaseReviewData>) => {
-    setCases((prev) =>
-      prev.map((c) => (c.caseId === caseId ? { ...c, ...updates } : c))
-    );
+    setCases((prev) => {
+      const next = prev.map((c) => (c.caseId === caseId ? { ...c, ...updates } : c));
+      persistCases(next);
+      return next;
+    });
   };
 
   const validateCaseByCounsellor = (
     caseId: string,
-    validationData: Partial<CaseReviewData['counsellorReview']> & { newStatus?: CaseReviewData['status'] }
+    validationData: {
+      humanValidatedRisk: RiskLevel;
+      clinicalNotes: string;
+      selectedSupportTypes: SupportInterventionType[];
+      referralTarget: string;
+      followUpDate: string;
+      followUpTime: string;
+    }
   ) => {
-    const { newStatus, ...counsellorFields } = validationData;
-    setCases((prev) =>
-      prev.map((c) => {
-        if (c.caseId === caseId) {
-          return {
-            ...c,
-            status: newStatus || 'FOLLOW_UP_SCHEDULED',
-            counsellorReview: {
-              ...c.counsellorReview,
-              ...counsellorFields,
-              reviewedAt: new Date().toISOString(),
-              isHumanValidated: true
-            }
-          };
-        }
-        return c;
-      })
-    );
+    const updated = serviceValidateCase(caseId, validationData);
+    setCases((prev) => {
+      const next = prev.map((c) => (c.caseId === caseId ? updated : c));
+      persistCases(next);
+      return next;
+    });
+    setAlerts((prev) => prev.map((a) => (a.caseId === caseId ? { ...a, isReviewed: true } : a)));
+    setActiveAlert(null);
+    setDemoToast({
+      message: `Case ${caseId} validated by Dr. Priya Raman (${validationData.humanValidatedRisk}). Support Plan Initiated.`,
+      type: 'success'
+    });
   };
 
   const submitScreening = (): CaseReviewData => {
     persistCitizenProfile(citizenProfile);
     persistScreeningAnswers(screeningAnswers);
-    const newCase = buildCaseFromScreening(citizenProfile, screeningAnswers);
+    const newCase = buildCaseFromScreening(citizenProfile, screeningAnswers, nhaaData);
     setCases((prev) => upsertSubmittedCase(prev, newCase));
     setCurrentCaseId(newCase.caseId);
     return newCase;
   };
 
+  /**
+   * Synchronizes latest state from NHAA adapter
+   */
+  const syncNhaaCase = async (caseRef: string = DEFAULT_NHAA_CASE_REF) => {
+    setIsNhaaSyncing(true);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    const synced = getConsentedCaseData(caseRef);
+    if (synced) {
+      setNhaaData(synced);
+      persistNhaaData(synced);
+      setDemoToast({
+        message: `NHAA Case Data (${synced.nhaaCaseReference}) synchronized successfully.`,
+        type: 'info'
+      });
+    }
+    setIsNhaaSyncing(false);
+  };
+
+  /**
+   * Simulates an incoming case event (e.g. Hearing Postponed 04 Sep -> 18 Sep 2026)
+   * Triggers the full end-to-end continuous monitoring chain.
+   */
+  const simulateNhaaCaseUpdate = (customEvent?: Partial<NHAACaseEvent>) => {
+    setIsNhaaSyncing(true);
+    const updatedNhaa = simulateNhaaCaseEvent(DEFAULT_NHAA_CASE_REF, customEvent);
+    setNhaaData(updatedNhaa);
+
+    // Trigger AI Risk Engine Reprocessing
+    const { updatedCase, newAlert } = reprocessCaseOnNhaaUpdate(
+      'RS-2026-00124',
+      updatedNhaa,
+      citizenProfile,
+      screeningAnswers
+    );
+
+    setCases((prev) => upsertSubmittedCase(prev, updatedCase));
+    setAlerts((prev) => [newAlert, ...prev.filter((a) => a.id !== newAlert.id)]);
+    setActiveAlert(newAlert);
+    setIsNhaaSyncing(false);
+
+    setDemoToast({
+      message: `⚡ NHAA CHANGE DETECTED: Hearing postponed to 18 Sep 2026 → Risk escalated (58 → 72 HIGH) → Counsellor Alert Generated!`,
+      type: 'alert'
+    });
+  };
+
+  const acknowledgeAlert = (alertId: string) => {
+    setAlerts((prev) => {
+      const next = prev.map((a) =>
+        a.id === alertId ? { ...a, isAcknowledged: true, acknowledgedAt: new Date().toISOString() } : a
+      );
+      persistCounsellorAlerts(next);
+      return next;
+    });
+    if (activeAlert?.id === alertId) {
+      setActiveAlert(null);
+    }
+  };
+
+  const dismissActiveAlert = () => {
+    setActiveAlert(null);
+  };
+
+  const clearDemoToast = () => {
+    setDemoToast(null);
+  };
+
   const resetToDefault = () => {
+    const freshNhaa = resetNhaaData();
     persistCases(INITIAL_CASES);
     persistCitizenProfile(DEFAULT_PROFILE);
     persistScreeningAnswers(DEFAULT_SCREENING);
+    persistCounsellorAlerts([]);
     clearCitizenSession();
     clearConsent();
     setCases(INITIAL_CASES);
@@ -232,8 +378,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCitizenProfile(DEFAULT_PROFILE);
     setScreeningAnswers(DEFAULT_SCREENING);
     setCitizenSession(null);
-    setHasConsented(false);
+    setHasConsented(true);
+    setNhaaData(freshNhaa);
+    setAlerts([]);
+    setActiveAlert(null);
     setCurrentRole('citizen');
+    setDemoToast({
+      message: 'Demo state reset to baseline (Risk 58 / MODERATE, Initial NHAA Hearing 04 Sep 2026).',
+      type: 'info'
+    });
     navigateTo('public-support', 'none');
   };
 
@@ -266,7 +419,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         citizenSession,
         hasConsented,
         loginCitizen,
-        setConsent
+        setConsent,
+        revokeConsent,
+        nhaaData,
+        isNhaaSyncing,
+        syncNhaaCase,
+        simulateNhaaCaseUpdate,
+        alerts,
+        activeAlert,
+        acknowledgeAlert,
+        dismissActiveAlert,
+        demoToast,
+        clearDemoToast
       }}
     >
       {children}

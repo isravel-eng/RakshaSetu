@@ -49,10 +49,10 @@ export const StateDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 State KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 5 State KPI Cards including NHAA Stream */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
         <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#545f72] uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-[#545f72] uppercase tracking-wider block">
             Total State Screenings
           </span>
           <div className="flex items-baseline justify-between">
@@ -67,7 +67,22 @@ export const StateDashboard: React.FC = () => {
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#ba1a1a] uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-[#002046] uppercase tracking-wider block">
+            Monitored NHAA Cases
+          </span>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-extrabold text-[#002046] font-mono">
+              {INITIAL_STATE_METRICS.monitoredCases || 4820}
+            </span>
+            <span className="text-xs text-blue-900 bg-blue-50 px-2 py-0.5 rounded font-semibold">
+              Active Stream
+            </span>
+          </div>
+          <p className="text-[11px] text-[#74777f]">Continuous Tracking</p>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-[#ba1a1a] uppercase tracking-wider block">
             Pending Validations
           </span>
           <div className="flex items-baseline justify-between">
@@ -82,7 +97,7 @@ export const StateDashboard: React.FC = () => {
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#545f72] uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-[#545f72] uppercase tracking-wider block">
             Scheduled Follow-ups
           </span>
           <div className="flex items-baseline justify-between">
@@ -96,8 +111,8 @@ export const StateDashboard: React.FC = () => {
           <p className="text-[11px] text-[#74777f]">Tele-MANAS & District OPDs</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#545f72] uppercase tracking-wider block">
+        <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1 col-span-2 lg:col-span-1">
+          <span className="text-[10px] font-bold text-[#545f72] uppercase tracking-wider block">
             Resolved & Stabilized
           </span>
           <div className="flex items-baseline justify-between">

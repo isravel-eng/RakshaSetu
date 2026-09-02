@@ -52,10 +52,10 @@ export const NationalCommandCenter: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 Pan-India Overview Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 5 Pan-India Overview Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
         <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#545f72] uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-[#545f72] uppercase tracking-wider block">
             Pan-India Screenings
           </span>
           <div className="flex items-baseline justify-between">
@@ -70,7 +70,22 @@ export const NationalCommandCenter: React.FC = () => {
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#ba1a1a] uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-[#002046] uppercase tracking-wider block">
+            Monitored NHAA Cases
+          </span>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl sm:text-3xl font-extrabold text-[#002046] font-mono">
+              {INITIAL_NATIONAL_METRICS.monitoredNhaaCases.toLocaleString()}
+            </span>
+            <span className="text-xs text-blue-900 bg-blue-50 px-2 py-0.5 rounded font-semibold">
+              Live Stream
+            </span>
+          </div>
+          <p className="text-[11px] text-[#74777f]">Continuous Monitoring</p>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
+          <span className="text-[10px] font-bold text-[#ba1a1a] uppercase tracking-wider block">
             Critical Alerts (Pan-India)
           </span>
           <div className="flex items-baseline justify-between">
@@ -85,7 +100,7 @@ export const NationalCommandCenter: React.FC = () => {
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#545f72] uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-[#545f72] uppercase tracking-wider block">
             Active Counsellors On Duty
           </span>
           <div className="flex items-baseline justify-between">
@@ -99,9 +114,9 @@ export const NationalCommandCenter: React.FC = () => {
           <p className="text-[11px] text-[#74777f]">Tele-MANAS 51 Hubs</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-[#545f72] uppercase tracking-wider block">
-            National Avg Triage Speed
+        <div className="bg-white p-4 rounded-xl border border-[#c4c6cf] shadow-2xs space-y-1 col-span-2 lg:col-span-1">
+          <span className="text-[10px] font-bold text-[#545f72] uppercase tracking-wider block">
+            Avg Triage Speed
           </span>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl sm:text-3xl font-extrabold text-[#002046] font-mono">
@@ -111,7 +126,7 @@ export const NationalCommandCenter: React.FC = () => {
               SLA Met
             </span>
           </div>
-          <p className="text-[11px] text-[#74777f]">AI + Human Validation Loop</p>
+          <p className="text-[11px] text-[#74777f]">AI + Human Loop</p>
         </div>
       </div>
 

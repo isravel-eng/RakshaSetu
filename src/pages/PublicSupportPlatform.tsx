@@ -22,22 +22,35 @@ export const PublicSupportPlatform: React.FC = () => {
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-[#002046] to-[#1b365d] text-white py-12 sm:py-16 px-4 sm:px-6 lg:px-8 shadow-inner">
         <div className="max-w-5xl mx-auto text-center space-y-6">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-xs font-medium text-[#aec7f7]">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>National Tele Mental Health Programme • 24x7 Toll-Free</span>
+          {/* Logo & National Badge */}
+          <div className="flex flex-col items-center justify-center gap-3">
+            <div className="w-20 h-20 rounded-2xl bg-white p-1.5 shadow-xl flex items-center justify-center transform hover:scale-105 transition-transform overflow-hidden">
+              <img
+                src="/assets/rakshasetu-logo.png"
+                alt="RakshaSetu Shield Logo"
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-xs font-medium text-[#aec7f7]">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>National Distress Management & Victim Monitoring System • 24x7 Toll-Free</span>
+            </div>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white leading-tight">
-            You Are Not Alone. <br className="hidden sm:inline" />
-            <span className="text-[#aec7f7]">Confidential, Timely Distress Support.</span>
+            Victim Support & <br className="hidden sm:inline" />
+            <span className="text-[#aec7f7]">Continuous Case Monitoring Platform</span>
           </h1>
 
           <p className="max-w-2xl mx-auto text-sm sm:text-base text-[#d8e3fa] font-normal leading-relaxed">
-            RakshaSetu is a national public-service platform offering private emotional distress screening,
-            instant clinical triage under human supervision, and direct linkage to certified counsellors across India.
+            RakshaSetu securely connects consented case updates from the NHAA registry with AI distress evaluation
+            and certified Tele-MANAS counsellors for proactive, continuous human intervention.
           </p>
 
-          {/* Core Action Buttons - EXACT LABELS FROM NAVIGATION SPEC */}
+          {/* Core Action Buttons */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
             <button
               id="get-support-now-btn"
@@ -69,13 +82,13 @@ export const PublicSupportPlatform: React.FC = () => {
 
           <div className="pt-2 text-xs text-[#87a0cd] flex items-center justify-center gap-4 flex-wrap">
             <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm text-emerald-400">lock</span> 100% Free & Confidential
+              <span className="material-symbols-outlined text-sm text-emerald-400">lock</span> DPDPA 2023 Consent Authorized
             </span>
             <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm text-emerald-400">schedule</span> Takes ~3 Minutes
+              <span className="material-symbols-outlined text-sm text-emerald-400">sync</span> Continuous Case Stream
             </span>
             <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm text-emerald-400">visibility_off</span> Anonymous Option Available
+              <span className="material-symbols-outlined text-sm text-emerald-400">verified_user</span> Human Validation Authoritative
             </span>
           </div>
         </div>
@@ -118,23 +131,25 @@ export const PublicSupportPlatform: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 space-y-10">
-        {/* 3 Pillars of Support */}
+        {/* 3 Pillars of Victim Support & Continuous Monitoring */}
         <div>
           <div className="text-center max-w-xl mx-auto mb-8">
-            <h2 className="text-2xl font-bold text-[#002046] tracking-tight">Structured, Dignified Mental Health Support</h2>
+            <h2 className="text-2xl font-bold text-[#002046] tracking-tight">
+              Proactive Case Monitoring & Victim Care
+            </h2>
             <p className="text-xs sm:text-sm text-[#545f72] mt-1">
-              Built under Government of India standards to bridge citizens directly with medical and psychological care.
+              Bridging consented NHAA case events with intelligent AI triage and certified Tele-MANAS clinicians.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className="bg-white rounded-xl p-6 border border-[#c4c6cf]/80 shadow-2xs space-y-3">
               <div className="w-10 h-10 rounded-lg bg-[#d6e3ff] text-[#002046] flex items-center justify-center">
-                <span className="material-symbols-outlined text-2xl">assignment_turned_in</span>
+                <span className="material-symbols-outlined text-2xl">account_balance</span>
               </div>
-              <h3 className="font-bold text-base text-[#002046]">1. Clinical Screening</h3>
+              <h3 className="font-bold text-base text-[#002046]">1. NHAA Case Stream</h3>
               <p className="text-xs text-[#545f72] leading-relaxed">
-                Standardized PHQ-4 and GAD clinical questionnaire adapted for Indian cultural contexts in 14 regional languages.
+                Permitted case tracking (hearing dates, trial delays, protection orders) synchronized with explicit victim consent under DPDPA.
               </p>
             </div>
 
@@ -142,9 +157,9 @@ export const PublicSupportPlatform: React.FC = () => {
               <div className="w-10 h-10 rounded-lg bg-[#d5e0f7] text-[#1b365d] flex items-center justify-center">
                 <span className="material-symbols-outlined text-2xl">psychology</span>
               </div>
-              <h3 className="font-bold text-base text-[#002046]">2. Human-in-the-Loop AI</h3>
+              <h3 className="font-bold text-base text-[#002046]">2. Continuous AI Reassessment</h3>
               <p className="text-xs text-[#545f72] leading-relaxed">
-                AI provides instantaneous distress severity estimation. Certified human psychologists validate every triage recommendation.
+                When a trial delay or case milestone changes, the engine recalculates distress risk in real time and flags escalations.
               </p>
             </div>
 
@@ -152,26 +167,26 @@ export const PublicSupportPlatform: React.FC = () => {
               <div className="w-10 h-10 rounded-lg bg-[#d6e3ff] text-[#002046] flex items-center justify-center">
                 <span className="material-symbols-outlined text-2xl">medical_services</span>
               </div>
-              <h3 className="font-bold text-base text-[#002046]">3. Direct Hospital Linkage</h3>
+              <h3 className="font-bold text-base text-[#002046]">3. Tele-MANAS Human Care</h3>
               <p className="text-xs text-[#545f72] leading-relaxed">
-                Seamless referral to District Mental Health Programme (DMHP) clinics, medical colleges, and tele-counselling sessions.
+                Certified clinical psychologists review incoming risk alerts, validate decisions, authorize support plans, and schedule follow-ups.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Quick Screening Flow Overview */}
+        {/* 4-Step Continuous Lifecycle Roadmap */}
         <div className="bg-white rounded-xl border border-[#c4c6cf]/80 p-6 sm:p-8 shadow-2xs">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 border-b border-[#eceef0] gap-4">
             <div>
-              <span className="text-[11px] font-bold tracking-wider text-[#002046] uppercase">Screening Roadmap</span>
-              <h3 className="text-xl font-bold text-[#002046] mt-0.5">How RakshaSetu Assists You</h3>
+              <span className="text-[11px] font-bold tracking-wider text-[#002046] uppercase">Continuous Workflow</span>
+              <h3 className="text-xl font-bold text-[#002046] mt-0.5">The RakshaSetu Case Lifecycle</h3>
             </div>
             <button
               onClick={startCitizenFlow}
               className="px-4 py-2 bg-[#002046] text-white text-xs font-semibold rounded-lg hover:bg-[#1b365d] transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <span>Begin Your Screening</span>
+              <span>Begin Intake & Consent</span>
               <span className="material-symbols-outlined text-base">arrow_forward</span>
             </button>
           </div>
@@ -181,32 +196,32 @@ export const PublicSupportPlatform: React.FC = () => {
               <div className="text-xs font-mono font-bold text-[#002046] bg-[#d6e3ff] w-6 h-6 rounded-full flex items-center justify-center">
                 1
               </div>
-              <h4 className="text-sm font-semibold text-[#002046]">Profile Setup</h4>
-              <p className="text-xs text-[#545f72]">Basic demographics or completely anonymous mode.</p>
+              <h4 className="text-sm font-semibold text-[#002046]">Consent & Intake</h4>
+              <p className="text-xs text-[#545f72]">Victim authorizes NHAA case access and completes baseline psychological screening.</p>
             </div>
 
             <div className="p-4 rounded-lg bg-[#f7f9fb] border border-[#e0e3e5] space-y-2">
               <div className="text-xs font-mono font-bold text-[#002046] bg-[#d6e3ff] w-6 h-6 rounded-full flex items-center justify-center">
                 2
               </div>
-              <h4 className="text-sm font-semibold text-[#002046]">4-Step Questions</h4>
-              <p className="text-xs text-[#545f72]">Evaluate mood, sleep, stressors, and emotional safety.</p>
+              <h4 className="text-sm font-semibold text-[#002046]">Initial AI Triage</h4>
+              <p className="text-xs text-[#545f72]">Initial risk evaluated (e.g. 58 MODERATE) and case entered into continuous monitoring.</p>
             </div>
 
             <div className="p-4 rounded-lg bg-[#f7f9fb] border border-[#e0e3e5] space-y-2">
               <div className="text-xs font-mono font-bold text-[#002046] bg-[#d6e3ff] w-6 h-6 rounded-full flex items-center justify-center">
                 3
               </div>
-              <h4 className="text-sm font-semibold text-[#002046]">Clinical AI Triage</h4>
-              <p className="text-xs text-[#545f72]">Instant distress score and personalized coping toolkit.</p>
+              <h4 className="text-sm font-semibold text-[#002046]">Event Reassessment</h4>
+              <p className="text-xs text-[#545f72]">NHAA hearing postponement triggers automatic re-scoring (e.g. 72 HIGH) and counsellor alert.</p>
             </div>
 
             <div className="p-4 rounded-lg bg-[#f7f9fb] border border-[#e0e3e5] space-y-2">
               <div className="text-xs font-mono font-bold text-[#002046] bg-[#d6e3ff] w-6 h-6 rounded-full flex items-center justify-center">
                 4
               </div>
-              <h4 className="text-sm font-semibold text-[#002046]">Counsellor Connect</h4>
-              <p className="text-xs text-[#545f72]">Human psychologist validation and scheduled follow-up.</p>
+              <h4 className="text-sm font-semibold text-[#002046]">Human Intervention</h4>
+              <p className="text-xs text-[#545f72]">Tele-MANAS clinician validates assessment, activates support plan, and schedules follow-up.</p>
             </div>
           </div>
         </div>

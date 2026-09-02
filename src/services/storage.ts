@@ -5,7 +5,10 @@ export const storageKeys = {
   consent: `${PREFIX}citizen-consent`,
   profile: `${PREFIX}citizen-profile`,
   screening: `${PREFIX}screening-answers`,
-  cases: `${PREFIX}cases`
+  cases: `${PREFIX}cases`,
+  nhaa: `${PREFIX}nhaa-data`,
+  alerts: `${PREFIX}counsellor-alerts`,
+  demoState: `${PREFIX}demo-state`
 } as const;
 
 export function readJson<T>(key: string): T | null {

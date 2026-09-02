@@ -7,22 +7,26 @@ export const NavigationHeader: React.FC = () => {
     currentScreen,
     navigateTo,
     currentRole,
+    setRole,
     setIsRoleSwitcherOpen,
-    resetToDefault
+    resetToDefault,
+    alerts,
+    setConsent
   } = useApp();
 
   const [isQuickNavOpen, setIsQuickNavOpen] = useState(false);
+  const unreviewedAlerts = alerts.filter((a) => !a.isReviewed);
 
   const screens: { id: ScreenId; label: string; tier: string }[] = [
-    { id: 'public-support', label: '1. RakshaSetu | Public Support Platform', tier: 'Public' },
-    { id: 'citizen-login', label: '2. Citizen Login', tier: 'Public' },
-    { id: 'citizen-consent', label: '3. Consent & Data Protection', tier: 'Public' },
-    { id: 'citizen-profile', label: '4. Citizen Profile Setup', tier: 'Public' },
+    { id: 'public-support', label: '1. RakshaSetu | Victim Support & Case Monitor', tier: 'Public' },
+    { id: 'citizen-login', label: '2. Victim Login & OTP', tier: 'Public' },
+    { id: 'citizen-consent', label: '3. NHAA Consent & DPDPA Authorization', tier: 'Public' },
+    { id: 'citizen-profile', label: '4. Intake Profile Setup', tier: 'Public' },
     { id: 'screening-intro', label: '5. Screening Introduction', tier: 'Public' },
     { id: 'screening', label: '6. Screening (4-Step Clinical PHQ/GAD)', tier: 'Public' },
     { id: 'screening-review', label: '7. Review & Submit', tier: 'Public' },
-    { id: 'assessment-result', label: '8. Assessment Result', tier: 'Public' },
-    { id: 'case-review', label: '9. Case Review: RS-2026-00124 (Human Validation)', tier: 'Counsellor' },
+    { id: 'assessment-result', label: '8. Assessment Result & Case Monitor', tier: 'Public' },
+    { id: 'case-review', label: '9. Tele-MANAS Counsellor Case Review (Human Validation)', tier: 'Counsellor' },
     { id: 'district-dashboard', label: '10. District Dashboard | Chennai', tier: 'District' },
     { id: 'state-dashboard', label: '11. State Dashboard | Tamil Nadu', tier: 'State' },
     { id: 'national-command', label: '12. National Command Center', tier: 'National' }
@@ -35,7 +39,7 @@ export const NavigationHeader: React.FC = () => {
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-white font-medium">National Distress Management System (NDMS)</span>
+            <span className="text-white font-medium">National Distress Management & Victim Monitoring System (NDMS)</span>
           </span>
           <span className="hidden md:inline text-[#87a0cd]">•</span>
           <span className="hidden md:inline text-white/90">Ministry of Health & Family Welfare • Government of India</span>
@@ -60,14 +64,22 @@ export const NavigationHeader: React.FC = () => {
 
       {/* Main navigation bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        {/* Left: Brand Identity */}
+        {/* Left: Brand Identity with RakshaSetu Logo */}
         <div
           id="brand-logo-button"
           onClick={() => navigateTo('public-support', 'push_back')}
           className="flex items-center gap-3 cursor-pointer group"
         >
-          <div className="w-10 h-10 rounded-lg bg-[#ffffff] text-[#002046] flex items-center justify-center font-bold shadow-xs transition-transform group-hover:scale-105">
-            <span className="material-symbols-outlined text-2xl text-[#002046]">health_and_safety</span>
+          <div className="w-10 h-10 rounded-lg bg-white p-0.5 flex items-center justify-center shadow-xs transition-transform group-hover:scale-105 overflow-hidden">
+            <img
+              src="/assets/rakshasetu-logo.png"
+              alt="RakshaSetu Logo"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                // Fallback to icon if image fails to render
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
@@ -77,13 +89,28 @@ export const NavigationHeader: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] text-[#aec7f7] tracking-normal font-light">
-              Public Distress Support & Clinical Triage Platform
+              Victim Support & Continuous Case Monitoring Platform
             </p>
           </div>
         </div>
 
         {/* Center & Right Controls */}
         <div className="flex items-center gap-3">
+          {/* Active Counsellor Alert Indicator */}
+          {unreviewedAlerts.length > 0 && (
+            <button
+              onClick={() => {
+                setRole('counsellor');
+                navigateTo('case-review', 'slide_up');
+              }}
+              className="flex items-center gap-1.5 bg-[#ba1a1a] hover:bg-[#d83a56] text-white text-xs px-3 py-1.5 rounded-lg font-bold animate-pulse shadow-sm transition-all"
+              title={`${unreviewedAlerts.length} High-Risk Alert(s) Pending Review`}
+            >
+              <span className="material-symbols-outlined text-sm">notifications_active</span>
+              <span>{unreviewedAlerts.length} Alert{unreviewedAlerts.length > 1 ? 's' : ''}</span>
+            </button>
+          )}
+
           {/* Quick Prototype Screen Switcher */}
           <div className="relative">
             <button
@@ -147,12 +174,10 @@ export const NavigationHeader: React.FC = () => {
             )}
           </div>
 
-          {/* Role Switcher Button - EXACT button label requested in spec */}
+          {/* Role Switcher Button */}
           <button
             id="role-switcher-header-btn"
             onClick={() => {
-              // Spec specifies Element: //button[contains(text(), 'Role Switcher')] -> National Command Center | RakshaSetu (slide_up transition)
-              // We also provide role modal or direct navigation based on context
               navigateTo('national-command', 'slide_up');
             }}
             className="flex items-center gap-1.5 bg-[#aec7f7] hover:bg-[#d6e3ff] text-[#002046] font-semibold text-xs px-3.5 py-2 rounded-lg transition-colors cursor-pointer shadow-xs"
