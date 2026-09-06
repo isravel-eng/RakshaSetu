@@ -12,7 +12,7 @@ export const ScreeningReview: React.FC = () => {
   const {
     citizenProfile,
     screeningAnswers,
-    submitScreening,
+    currentCase,
     updateCase,
     navigateTo,
   } = useApp();
@@ -40,42 +40,52 @@ export const ScreeningReview: React.FC = () => {
         throw new Error('The ML service returned no prediction.');
       }
 
-      // Keep the polished frontend's existing case/result UI, but replace the
-      // locally calculated risk values with the real Render ML response.
-      const submittedCase = submitScreening();
-      updateCase(submittedCase.caseId, {
+      // The Render ML response is the source of truth for the assessment result.
+      // The existing CaseReviewData shape is retained so the existing result,
+      // counsellor, and dashboard UI can render without a visual rewrite.
+      const nowIso = new Date().toISOString();
+      updateCase(currentCase.caseId, {
+        citizenName: citizenProfile.anonymousMode ? 'Anonymous Citizen' : citizenProfile.fullName,
+        citizenPhone: citizenProfile.anonymousMode ? 'Protected Token' : citizenProfile.phone,
+        district: citizenProfile.district,
+        state: citizenProfile.state,
+        updatedAt: nowIso,
         distressScore: remoteRisk.score,
-        riskLevel: remoteRisk.riskLevel as typeof submittedCase.riskLevel,
-        priority: remoteRisk.priority as typeof submittedCase.priority,
+        riskLevel: remoteRisk.riskLevel as typeof currentCase.riskLevel,
+        priority: remoteRisk.priority as typeof currentCase.priority,
         emergencyFlag: remoteRisk.emergencyFlag,
         status: remoteRisk.emergencyFlag ? 'IN_REVIEW' : 'PENDING_REVIEW',
+        monitoringActive: true,
         aiAssessment: {
-          ...submittedCase.aiAssessment,
+          ...currentCase.aiAssessment,
           distressCategory: remoteRisk.distressCategory,
           confidenceScore: remoteRisk.confidenceScore,
-          confidenceLevel: remoteRisk.confidence as typeof submittedCase.aiAssessment.confidenceLevel,
-          priority: remoteRisk.priority as typeof submittedCase.aiAssessment.priority,
+          confidenceLevel: remoteRisk.confidence as typeof currentCase.aiAssessment.confidenceLevel,
+          priority: remoteRisk.priority as typeof currentCase.aiAssessment.priority,
           emergencyFlag: remoteRisk.emergencyFlag,
           recommendedTier: remoteRisk.recommendedTier,
           recommendedAction: remoteRisk.recommendedAction,
           keyRiskFactors: remoteRisk.contributingFactors,
           protectiveFactors: remoteRisk.protectiveFactors,
           explanation: remoteRisk.explanation,
-          suggestedInterventions: submittedCase.aiAssessment.suggestedInterventions,
           requiresHumanReview: remoteRisk.requiresHumanReview,
           disclaimer: remoteRisk.disclaimer,
         },
-        riskHistory: submittedCase.riskHistory.map((entry, index) => index === 0
-          ? {
-              ...entry,
-              score: remoteRisk.score,
-              riskLevel: remoteRisk.riskLevel as typeof entry.riskLevel,
-              priority: remoteRisk.priority as typeof entry.priority,
-              contributingFactors: remoteRisk.contributingFactors,
-              protectiveFactors: remoteRisk.protectiveFactors,
-              reason: `Render ML prediction from model ${backendResponse.prediction?.model_version || 'unknown'}.`,
-            }
-          : entry),
+        riskHistory: [
+          {
+            ...currentCase.riskHistory[0],
+            timestamp: nowIso,
+            score: remoteRisk.score,
+            riskLevel: remoteRisk.riskLevel as typeof currentCase.riskHistory[0]['riskLevel'],
+            priority: remoteRisk.priority as typeof currentCase.riskHistory[0]['priority'],
+            trigger: 'INITIAL_SCREENING',
+            triggerLabel: `Render ML prediction (${backendResponse.prediction?.model_version || 'unknown'})`,
+            reason: `Assessment submitted through Render backend and evaluated by the deployed ML service. Backend case: ${backendCase.case_number}.`,
+            contributingFactors: remoteRisk.contributingFactors,
+            protectiveFactors: remoteRisk.protectiveFactors,
+          },
+          ...currentCase.riskHistory.slice(1),
+        ],
       });
 
       sessionStorage.setItem('rakshasetu.backendToken', session.token);
