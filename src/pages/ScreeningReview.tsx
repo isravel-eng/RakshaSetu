@@ -1,13 +1,95 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { EthicsBanner } from '../components/EthicsBanner';
+import {
+  createCase,
+  ensureCitizenSession,
+  predictionToRiskResult,
+  submitAssessment,
+} from '../services/backendApi';
 
 export const ScreeningReview: React.FC = () => {
-  const { citizenProfile, screeningAnswers, submitScreening, navigateTo } = useApp();
+  const {
+    citizenProfile,
+    screeningAnswers,
+    submitScreening,
+    updateCase,
+    navigateTo,
+  } = useApp();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = () => {
-    submitScreening();
-    navigateTo('assessment-result', 'push');
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      // The existing phone/OTP UX is preserved, while the backend receives a
+      // real authenticated citizen session behind the scenes.
+      const session = await ensureCitizenSession(citizenProfile);
+      const backendCase = await createCase(session.token, citizenProfile, 'TRIAL');
+      const backendResponse = await submitAssessment(
+        session.token,
+        backendCase.id,
+        screeningAnswers,
+      );
+      const remoteRisk = predictionToRiskResult(backendResponse.prediction);
+
+      if (!remoteRisk) {
+        throw new Error('The ML service returned no prediction.');
+      }
+
+      // Keep the polished frontend's existing case/result UI, but replace the
+      // locally calculated risk values with the real Render ML response.
+      const submittedCase = submitScreening();
+      updateCase(submittedCase.caseId, {
+        distressScore: remoteRisk.score,
+        riskLevel: remoteRisk.riskLevel as typeof submittedCase.riskLevel,
+        priority: remoteRisk.priority as typeof submittedCase.priority,
+        emergencyFlag: remoteRisk.emergencyFlag,
+        status: remoteRisk.emergencyFlag ? 'IN_REVIEW' : 'PENDING_REVIEW',
+        aiAssessment: {
+          ...submittedCase.aiAssessment,
+          distressCategory: remoteRisk.distressCategory,
+          confidenceScore: remoteRisk.confidenceScore,
+          confidenceLevel: remoteRisk.confidence as typeof submittedCase.aiAssessment.confidenceLevel,
+          priority: remoteRisk.priority as typeof submittedCase.aiAssessment.priority,
+          emergencyFlag: remoteRisk.emergencyFlag,
+          recommendedTier: remoteRisk.recommendedTier,
+          recommendedAction: remoteRisk.recommendedAction,
+          keyRiskFactors: remoteRisk.contributingFactors,
+          protectiveFactors: remoteRisk.protectiveFactors,
+          explanation: remoteRisk.explanation,
+          suggestedInterventions: submittedCase.aiAssessment.suggestedInterventions,
+          requiresHumanReview: remoteRisk.requiresHumanReview,
+          disclaimer: remoteRisk.disclaimer,
+        },
+        riskHistory: submittedCase.riskHistory.map((entry, index) => index === 0
+          ? {
+              ...entry,
+              score: remoteRisk.score,
+              riskLevel: remoteRisk.riskLevel as typeof entry.riskLevel,
+              priority: remoteRisk.priority as typeof entry.priority,
+              contributingFactors: remoteRisk.contributingFactors,
+              protectiveFactors: remoteRisk.protectiveFactors,
+              reason: `Render ML prediction from model ${backendResponse.prediction?.model_version || 'unknown'}.`,
+            }
+          : entry),
+      });
+
+      sessionStorage.setItem('rakshasetu.backendToken', session.token);
+      sessionStorage.setItem('rakshasetu.backendCaseId', String(backendCase.id));
+      sessionStorage.setItem('rakshasetu.backendCaseNumber', backendCase.case_number);
+      sessionStorage.setItem('rakshasetu.lastPrediction', JSON.stringify(backendResponse.prediction));
+
+      navigateTo('assessment-result', 'push');
+    } catch (submitError) {
+      const message = submitError instanceof Error ? submitError.message : 'Unable to submit screening.';
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const rows: { label: string; value: string }[] = [
@@ -33,6 +115,7 @@ export const ScreeningReview: React.FC = () => {
           <button
             onClick={() => navigateTo('screening', 'push_back')}
             className="hover:text-[#002046] flex items-center gap-1 cursor-pointer"
+            disabled={isSubmitting}
           >
             <span className="material-symbols-outlined text-sm">arrow_back</span>
             <span>Screening</span>
@@ -52,7 +135,7 @@ export const ScreeningReview: React.FC = () => {
             <h1 className="text-2xl font-bold text-[#002046] tracking-tight">Review Screening Before Submit</h1>
           </div>
           <p className="text-sm text-[#545f72] leading-relaxed">
-            Confirm your responses below. Submitting processes your screening through our deterministic AI Risk Engine to
+            Confirm your responses below. Submitting sends the assessment through the Render backend and trained ML service to
             provide an immediate preliminary triage summary and route your case for certified human clinical review.
           </p>
         </div>
@@ -68,11 +151,18 @@ export const ScreeningReview: React.FC = () => {
 
         <EthicsBanner type="ai-preliminary" />
 
+        {error && (
+          <div className="p-3 rounded-lg border border-[#ba1a1a]/30 bg-[#ffdad6] text-[#93000a] text-xs font-medium" role="alert">
+            <strong>Submission failed:</strong> {error}
+          </div>
+        )}
+
         <div className="pt-6 border-t border-[#eceef0] flex flex-col sm:flex-row items-center justify-between gap-4">
           <button
             id="review-back-btn"
             onClick={() => navigateTo('screening', 'push_back')}
-            className="w-full sm:w-auto px-5 py-2.5 bg-white border border-[#74777f] text-[#002046] font-semibold text-sm rounded-lg hover:bg-[#f2f4f6] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            className="w-full sm:w-auto px-5 py-2.5 bg-white border border-[#74777f] text-[#002046] font-semibold text-sm rounded-lg hover:bg-[#f2f4f6] transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+            disabled={isSubmitting}
           >
             <span className="material-symbols-outlined text-base">arrow_back</span>
             <span>Edit Screening</span>
@@ -80,10 +170,11 @@ export const ScreeningReview: React.FC = () => {
           <button
             id="submit-screening-review-btn"
             onClick={handleSubmit}
-            className="w-full sm:w-auto px-7 py-3 bg-[#002046] hover:bg-[#1b365d] text-white font-bold text-sm sm:text-base rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+            disabled={isSubmitting}
+            className="w-full sm:w-auto px-7 py-3 bg-[#002046] hover:bg-[#1b365d] text-white font-bold text-sm sm:text-base rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
           >
-            <span className="material-symbols-outlined text-lg">send</span>
-            <span>Submit Screening</span>
+            <span className="material-symbols-outlined text-lg">{isSubmitting ? 'progress_activity' : 'send'}</span>
+            <span>{isSubmitting ? 'Processing assessment…' : 'Submit Screening'}</span>
           </button>
         </div>
       </div>
