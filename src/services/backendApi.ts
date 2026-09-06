@@ -1,9 +1,10 @@
-import type {
-  CitizenProfile,
-  ScreeningAnswers,
-} from '../types';
+import type { CitizenProfile, ScreeningAnswers } from '../types';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000').replace(/\/$/, '');
+// Production works without a Vercel environment variable. Set VITE_API_BASE_URL
+// in local development when you want to point the UI at another backend.
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || 'https://raksha-sethu.onrender.com'
+).replace(/\/$/, '');
 
 export interface BackendAuthResult {
   token: string;
@@ -87,6 +88,16 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
   return body as T;
 }
 
+function prototypeEmail(phone: string): string {
+  const compact = phone.replace(/\D/g, '').slice(-15) || 'anonymous';
+  return `citizen-${compact}@demo.rakshasetu.local`;
+}
+
+function prototypePassword(phone: string): string {
+  const compact = phone.replace(/\D/g, '').slice(-15) || 'anonymous';
+  return `RakshaSetu-${compact}-prototype`;
+}
+
 export function getBackendBaseUrl(): string {
   return API_BASE_URL;
 }
@@ -104,8 +115,8 @@ export async function registerCitizen(
       role: 'citizen',
       name: profile.fullName || 'Anonymous Citizen',
       phone: profile.phone || undefined,
-      district: profile.district,
-      state: profile.state,
+      district: profile.district || 'Chennai',
+      state: profile.state || 'Tamil Nadu',
       consent_given: Boolean(profile.consentDataSharing),
     }),
   });
@@ -116,6 +127,25 @@ export async function loginCitizen(email: string, password: string): Promise<Bac
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
+}
+
+/**
+ * Keeps the existing phone/OTP citizen UX while provisioning a real backend
+ * citizen account behind the scenes. Registration is attempted first; an
+ * existing account falls back to login.
+ */
+export async function ensureCitizenSession(profile: CitizenProfile): Promise<BackendAuthResult> {
+  const email = prototypeEmail(profile.phone);
+  const password = prototypePassword(profile.phone);
+  try {
+    return await registerCitizen(profile, email, password);
+  } catch (registrationError) {
+    try {
+      return await loginCitizen(email, password);
+    } catch {
+      throw registrationError;
+    }
+  }
 }
 
 export async function createCase(
@@ -165,6 +195,21 @@ function fatigueToScore(value: string): number {
   return 5;
 }
 
+function socialSupportToScore(value: string): number {
+  if (value.includes('Strong')) return 9;
+  if (value.includes('Moderate')) return 6;
+  if (value.includes('Minimal')) return 3;
+  if (value.includes('Completely isolated')) return 0;
+  return 5;
+}
+
+function copingToScore(value: string): number {
+  if (value.includes('well') || value.includes('Fair')) return 7;
+  if (value.includes('Struggling')) return 5;
+  if (value.includes('unable') || value.includes('Unable')) return 2;
+  return 5;
+}
+
 function appetiteToText(value: string): string {
   if (!value || value.includes('No significant')) return 'No significant appetite change.';
   if (value.includes('Mild drop')) return 'Mild appetite reduction.';
@@ -190,11 +235,17 @@ function buildMessage(answers: ScreeningAnswers): string {
     `Appetite: ${appetiteToText(answers.appetiteChanges)}`,
     answers.primaryStressor ? `Primary stressor: ${answers.primaryStressor}.` : '',
     answers.socialSupportLevel ? `Social support: ${answers.socialSupportLevel}.` : '',
+    answers.copingAbility ? `Coping ability: ${answers.copingAbility}.` : '',
     answers.additionalNotes ? `Additional notes: ${answers.additionalNotes}.` : '',
   ];
   return parts.filter(Boolean).join(' ');
 }
 
+/**
+ * Adapter from the RakshaSetu assessment UX to the numerical contract used by
+ * the trained ML model. The trained model, not this adapter, determines the
+ * learned importance of the features.
+ */
 export function assessmentToCheckIn(answers: ScreeningAnswers) {
   return {
     timestamp: new Date().toISOString(),
@@ -205,24 +256,9 @@ export function assessmentToCheckIn(answers: ScreeningAnswers) {
     sleep_quality: sleepToQuality(answers.sleepDisturbance || ''),
     fatigue: fatigueToScore(answers.energyFatigue || ''),
     social_support: socialSupportToScore(answers.socialSupportLevel || ''),
-    coping_ability: copingToScore(answers.copingAbility || answers.feelingOverwhelmed || ''),
+    coping_ability: copingToScore(answers.copingAbility || ''),
     self_harm_indicator: selfHarmToIndicator(answers.selfHarmThoughts || 'none'),
   };
-}
-
-function socialSupportToScore(value: string): number {
-  if (value.includes('Strong')) return 9;
-  if (value.includes('Moderate')) return 6;
-  if (value.includes('Minimal')) return 3;
-  if (value.includes('Completely isolated')) return 0;
-  return 5;
-}
-
-function copingToScore(value: string): number {
-  if (value.includes('well') || value.includes('Fair')) return 7;
-  if (value.includes('Struggling')) return 5;
-  if (value.includes('unable') || value.includes('Unable')) return 2;
-  return 5;
 }
 
 export async function submitAssessment(
@@ -231,56 +267,67 @@ export async function submitAssessment(
   answers: ScreeningAnswers,
 ): Promise<BackendCheckInResponse> {
   const checkIn = assessmentToCheckIn(answers);
-  return request<BackendCheckInResponse>('/check-ins', {
+  const response = await request<BackendCheckInResponse>('/check-ins', {
     method: 'POST',
     body: JSON.stringify({
       case_id: caseId,
       ...checkIn,
     }),
   }, token);
+
+  if (response.ml_error && !response.prediction) {
+    throw new Error(response.ml_error.message || 'ML service did not return a prediction');
+  }
+
+  return response;
 }
 
-export function predictionToRiskResult(
-  prediction: BackendPrediction | null,
-  fallbackDisclaimer = 'Synthetic demonstration only; not a diagnosis or clinical recommendation.'
-) {
+export function predictionToRiskResult(prediction: BackendPrediction | null) {
   if (!prediction) return null;
+
   const score = typeof prediction.dynamic_score === 'number'
     ? prediction.dynamic_score
     : prediction.dynamic_score?.score ?? 0;
-  const tier = prediction.risk_level || prediction.dynamic_score?.risk_tier || 'LOW';
-  const normalizedRisk = tier === 'MEDIUM' ? 'MODERATE' : tier;
+  const tier = String(prediction.risk_level || prediction.dynamic_score?.risk_tier || 'LOW').toUpperCase();
+  const normalizedRisk = tier === 'MEDIUM' ? 'MODERATE' : tier === 'URGENT' ? 'CRITICAL' : tier;
   const confidenceScore = Math.round((prediction.confidence ?? 0) * 100);
+
   return {
     riskLevel: normalizedRisk,
     score: Math.round(score),
     confidence: confidenceScore >= 80 ? 'HIGH' : confidenceScore >= 55 ? 'MEDIUM' : 'LOW',
     confidenceScore,
-    priority: normalizedRisk === 'URGENT' ? 'IMMEDIATE' : normalizedRisk === 'HIGH' ? 'URGENT' : normalizedRisk === 'MODERATE' ? 'PRIORITY' : 'ROUTINE',
+    priority: normalizedRisk === 'CRITICAL'
+      ? 'IMMEDIATE'
+      : normalizedRisk === 'HIGH'
+        ? 'URGENT'
+        : normalizedRisk === 'MODERATE'
+          ? 'PRIORITY'
+          : 'ROUTINE',
     contributingFactors: prediction.top_risk_factors || [],
     protectiveFactors: prediction.protective_factors || [],
     requiresHumanReview: Boolean(prediction.human_review_required),
-    emergencyFlag: normalizedRisk === 'URGENT',
-    recommendedTier: normalizedRisk === 'URGENT'
+    emergencyFlag: normalizedRisk === 'CRITICAL',
+    recommendedTier: normalizedRisk === 'CRITICAL'
       ? 'Tier-1: Emergency Human Intervention'
       : normalizedRisk === 'HIGH'
         ? 'Tier-3: Immediate Specialist Intervention & Follow-up'
         : normalizedRisk === 'MODERATE'
           ? 'Tier-2: Guided Counselling & Self-Care Toolkit'
           : 'Tier-4: Psychoeducation & Community Resources',
-    distressCategory: normalizedRisk === 'URGENT'
-      ? 'Urgent Distress Signal'
+    distressCategory: normalizedRisk === 'CRITICAL'
+      ? 'Critical Acute Crisis'
       : normalizedRisk === 'HIGH'
         ? 'High Distress Signal'
         : normalizedRisk === 'MODERATE'
           ? 'Moderate Situational Distress'
-          : 'Low Distress Signal',
+          : 'Mild Situational Stress',
     recommendedAction: Boolean(prediction.human_review_required)
       ? 'Human counsellor review is required for this preliminary screening result.'
       : 'Continue routine support and monitoring.',
-    explanation: `ML service result: ${prediction.ml_risk_level || normalizedRisk}. Trend: ${prediction.trend || 'stable/improving'}.`,
+    explanation: `ML model: ${prediction.ml_risk_level || normalizedRisk}. Trend: ${prediction.trend || 'stable/improving'}.`,
     suggestedInterventions: [],
-    disclaimer: prediction.disclaimer || fallbackDisclaimer,
+    disclaimer: prediction.disclaimer || 'Synthetic demonstration only; not a diagnosis or clinical recommendation.',
     nhaaSignalDetected: false,
   };
 }
