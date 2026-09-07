@@ -35,7 +35,8 @@ export const ScreeningIntro: React.FC = () => {
           </div>
           <p className="text-sm text-[#545f72] leading-relaxed">
             This confidential assessment helps understand the nature and severity of the distress you may be experiencing.
-            It uses clinically validated public health screening instruments (PHQ-4 & GAD-2) adapted for India.
+            You can chat naturally with our assessment companion (OpenAI-powered conversation, scored by the RakshaSetu ML
+            engine) or use the clinically validated public health screening instruments (PHQ-4 & GAD-2) adapted for India.
           </p>
         </div>
 
@@ -104,25 +105,67 @@ export const ScreeningIntro: React.FC = () => {
 
         <EthicsBanner type="ai-preliminary" />
 
-        {/* Action Buttons - EXACT SPEC LABELS */}
-        <div className="pt-6 border-t border-[#eceef0] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <button
-            id="screening-intro-back-btn"
-            onClick={() => navigateTo('public-support', 'push_back')}
-            className="w-full sm:w-auto px-5 py-2.5 bg-white border border-[#74777f] text-[#002046] font-semibold text-sm rounded-lg hover:bg-[#f2f4f6] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-base">arrow_back</span>
-            <span>Back</span>
-          </button>
+        {/* Assessment Mode Selection - EXACT SPEC LABELS */}
+        <div className="pt-6 border-t border-[#eceef0]">
+          <h3 className="text-sm font-bold text-[#002046]">How would you like to complete your assessment?</h3>
+          <p className="text-xs text-[#545f72] mt-0.5">Both modes feed the same RakshaSetu ML risk engine and human counsellor review.</p>
 
-          <button
-            id="begin-assessment-btn"
-            onClick={() => navigateTo('screening', 'push')}
-            className="w-full sm:w-auto px-7 py-3 bg-[#002046] hover:bg-[#1b365d] text-white font-bold text-sm sm:text-base rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <span>Begin Assessment</span>
-            <span className="material-symbols-outlined text-lg">play_arrow</span>
-          </button>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Option 1: Conversational Chatbot (OpenAI) */}
+            <button
+              id="begin-assessment-btn"
+              onClick={() => navigateTo('screening-chat', 'push')}
+              className="p-5 rounded-xl border-2 border-[#002046] bg-[#f0f9ff] hover:bg-[#d6e3ff]/40 hover:shadow-md transition-all text-left cursor-pointer group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-10 h-10 rounded-xl bg-[#002046] text-white flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-xl">forum</span>
+                </span>
+                <div>
+                  <h4 className="font-bold text-sm text-[#002046]">OpenAI Conversational Chatbot</h4>
+                  <p className="text-[11px] text-[#aec7f7]">Type or speak 🎤 voicebot</p>
+                </div>
+                <span className="material-symbols-outlined text-lg text-[#002046] ml-auto group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+              </div>
+              <p className="text-xs text-[#545f72] mt-3 leading-relaxed">
+                A short, adaptive natural-language conversation (text or voice) conducted by OpenAI. It asks one question at
+                a time, extracts the structured signals, and the RakshaSetu ML engine scores the risk.
+              </p>
+            </button>
+
+            {/* Option 2: 4-Step Clinical Screening */}
+            <button
+              id="use-standard-questionnaire-btn"
+              onClick={() => navigateTo('screening', 'push')}
+              className="p-5 rounded-xl border-2 border-[#c4c6cf] bg-white hover:bg-[#f2f4f6] hover:shadow-md transition-all text-left cursor-pointer group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-10 h-10 rounded-xl bg-[#d6e3ff] text-[#002046] flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-xl">list_alt</span>
+                </span>
+                <div>
+                  <h4 className="font-bold text-sm text-[#002046]">4-Step Clinical Screening</h4>
+                  <p className="text-[11px] text-[#545f72]">PHQ-4 & GAD-2 questionnaire</p>
+                </div>
+                <span className="material-symbols-outlined text-lg text-[#002046] ml-auto group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+              </div>
+              <p className="text-xs text-[#545f72] mt-3 leading-relaxed">
+                The clinically validated public health screening instrument (PHQ-4 & GAD-2) adapted for India — a structured
+                4-step questionnaire reviewed before submission.
+              </p>
+            </button>
+          </div>
+
+          <div className="mt-5 flex items-center justify-between gap-4">
+            <button
+              id="screening-intro-back-btn"
+              onClick={() => navigateTo('public-support', 'push_back')}
+              className="px-5 py-2.5 bg-white border border-[#74777f] text-[#002046] font-semibold text-sm rounded-lg hover:bg-[#f2f4f6] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base">arrow_back</span>
+              <span>Back</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

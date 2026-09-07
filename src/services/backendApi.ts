@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import type { CitizenProfile, ScreeningAnswers } from '../types';
 
 // Production works without a Vercel environment variable. Set VITE_API_BASE_URL
@@ -54,6 +56,49 @@ export interface BackendCheckInResponse {
   stored_prediction: Record<string, unknown> | null;
   alert: Record<string, unknown> | null;
   ml_error?: { message?: string; status?: number; details?: unknown };
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** Exact structured-assessment contract produced by the OpenAI extractor. */
+export interface StructuredAssessment {
+  emotional_distress: number;
+  distress_frequency: number;
+  overwhelm: number;
+  sleep_quality: number;
+  fatigue: number;
+  social_support: number;
+  coping_ability: number;
+  self_harm_indicator: number;
+  message_text: string;
+  missing_fields: string[];
+  assessment_complete: boolean;
+}
+
+export interface BackendChatResponse extends BackendCheckInResponse {
+  reply: string;
+  assessment: StructuredAssessment;
+}
+
+export interface BackendVoiceResponse extends BackendChatResponse {
+  transcript: string | null;
+  reply_audio_base64: string | null;
+}
+
+export interface BackendReprocessResponse {
+  event: Record<string, unknown> | null;
+  ml_request: { checkin_history: unknown[] };
+  prediction: BackendPrediction | null;
+  stored_prediction: Record<string, unknown> | null;
+  previous_prediction: Record<string, unknown> | null;
+  previous_score: number | null;
+  current_score: number | null;
+  risk_delta: number | null;
+  escalated: boolean;
+  alert: Record<string, unknown> | null;
 }
 
 function authHeaders(token?: string): Record<string, string> {
@@ -261,6 +306,61 @@ export function assessmentToCheckIn(answers: ScreeningAnswers) {
   };
 }
 
+/**
+ * OpenAI conversational assessment: sends the transcript to the backend,
+ * which runs OpenAI for structured extraction and, when complete, stores the
+ * check-in and runs the existing ML pipeline. The OpenAI key never leaves the
+ * backend.
+ */
+export async function submitChatAssessment(
+  token: string,
+  caseId: number,
+  messages: ChatMessage[],
+): Promise<BackendChatResponse> {
+  return request<BackendChatResponse>('/chat/assessment', {
+    method: 'POST',
+    body: JSON.stringify({ case_id: caseId, messages }),
+  }, token);
+}
+
+/**
+ * Voicebot: the backend transcribes the victim's speech with OpenAI Whisper,
+ * continues the same conversational assessment, and returns a spoken reply
+ * (OpenAI TTS) as base64 audio. No OpenAI key ever reaches the frontend.
+ */
+export async function submitVoiceAssessment(
+  token: string,
+  caseId: number,
+  messages: ChatMessage[],
+  audioBase64: string,
+): Promise<BackendVoiceResponse> {
+  return request<BackendVoiceResponse>('/chat/voice', {
+    method: 'POST',
+    body: JSON.stringify({ case_id: caseId, messages, audio_base64: audioBase64 }),
+  }, token);
+}
+
+/**
+ * Continuous NHAA monitoring: posts a meaningful case update, rebuilds the
+ * case context + chronological check-in history, re-runs the existing ML
+ * service and stores the new prediction. The backend creates a counsellor
+ * alert only on material escalation.
+ */
+export async function reprocessCase(
+  token: string,
+  caseId: number,
+  event: {
+    event_type: string;
+    event_date: string;
+    details_json: Record<string, unknown>;
+  },
+): Promise<BackendReprocessResponse> {
+  return request<BackendReprocessResponse>(`/cases/${caseId}/reprocess`, {
+    method: 'POST',
+    body: JSON.stringify({ event }),
+  }, token);
+}
+
 export async function submitAssessment(
   token: string,
   caseId: number,
@@ -288,7 +388,10 @@ export function predictionToRiskResult(prediction: BackendPrediction | null) {
   const score = typeof prediction.dynamic_score === 'number'
     ? prediction.dynamic_score
     : prediction.dynamic_score?.score ?? 0;
-  const tier = String(prediction.risk_level || prediction.dynamic_score?.risk_tier || 'LOW').toUpperCase();
+  const riskTier = typeof prediction.dynamic_score === 'object' && prediction.dynamic_score
+    ? prediction.dynamic_score.risk_tier
+    : undefined;
+  const tier = String(prediction.risk_level || riskTier || 'LOW').toUpperCase();
   const normalizedRisk = tier === 'MEDIUM' ? 'MODERATE' : tier === 'URGENT' ? 'CRITICAL' : tier;
   const confidenceScore = Math.round((prediction.confidence ?? 0) * 100);
 
@@ -329,5 +432,10 @@ export function predictionToRiskResult(prediction: BackendPrediction | null) {
     suggestedInterventions: [],
     disclaimer: prediction.disclaimer || 'Synthetic demonstration only; not a diagnosis or clinical recommendation.',
     nhaaSignalDetected: false,
+    // Real ML output surfaced on the assessment result / case review.
+    trend: prediction.trend || null,
+    modelVersion: prediction.model_version || null,
+    urgentProbability: typeof prediction.urgent_probability === 'number' ? prediction.urgent_probability : null,
+    mlRiskLevel: prediction.ml_risk_level || null,
   };
 }

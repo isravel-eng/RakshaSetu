@@ -3,6 +3,7 @@ export type ScreenId =
   | 'citizen-login'
   | 'citizen-consent'
   | 'screening-intro'
+  | 'screening-chat'
   | 'screening'
   | 'screening-review'
   | 'citizen-profile'
@@ -241,6 +242,11 @@ export interface CaseReviewData {
     suggestedInterventions: string[];
     requiresHumanReview?: boolean;
     disclaimer?: string;
+    // Real ML service output surfaced alongside the AI triage summary.
+    trend?: string;
+    modelVersion?: string;
+    urgentProbability?: number;
+    mlRiskLevel?: string;
   };
   counsellorReview: {
     assignedCounsellor: string;

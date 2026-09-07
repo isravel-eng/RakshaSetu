@@ -69,7 +69,7 @@ export const DemoSimulationControl: React.FC = () => {
           ) : (
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-mono bg-red-950 text-red-300 border border-red-800 px-2 py-0.5 rounded">
-                ⚡ EVENT INGESTED (Score 72 HIGH)
+                ⚡ EVENT INGESTED (Score {currentCase.distressScore} {currentCase.riskLevel})
               </span>
               <button
                 onClick={() => {

@@ -23,13 +23,14 @@ export const NavigationHeader: React.FC = () => {
     { id: 'citizen-consent', label: '3. NHAA Consent & DPDPA Authorization', tier: 'Public' },
     { id: 'citizen-profile', label: '4. Intake Profile Setup', tier: 'Public' },
     { id: 'screening-intro', label: '5. Screening Introduction', tier: 'Public' },
-    { id: 'screening', label: '6. Screening (4-Step Clinical PHQ/GAD)', tier: 'Public' },
-    { id: 'screening-review', label: '7. Review & Submit', tier: 'Public' },
-    { id: 'assessment-result', label: '8. Assessment Result & Case Monitor', tier: 'Public' },
-    { id: 'case-review', label: '9. Tele-MANAS Counsellor Case Review (Human Validation)', tier: 'Counsellor' },
-    { id: 'district-dashboard', label: '10. District Dashboard | Chennai', tier: 'District' },
-    { id: 'state-dashboard', label: '11. State Dashboard | Tamil Nadu', tier: 'State' },
-    { id: 'national-command', label: '12. National Command Center', tier: 'National' }
+    { id: 'screening-chat', label: '6. Conversational Assessment (OpenAI + ML)', tier: 'Public' },
+    { id: 'screening', label: '7. Screening (4-Step Clinical PHQ/GAD)', tier: 'Public' },
+    { id: 'screening-review', label: '8. Review & Submit', tier: 'Public' },
+    { id: 'assessment-result', label: '9. Assessment Result & Case Monitor', tier: 'Public' },
+    { id: 'case-review', label: '10. Tele-MANAS Counsellor Case Review (Human Validation)', tier: 'Counsellor' },
+    { id: 'district-dashboard', label: '11. District Dashboard | Chennai', tier: 'District' },
+    { id: 'state-dashboard', label: '12. State Dashboard | Tamil Nadu', tier: 'State' },
+    { id: 'national-command', label: '13. National Command Center', tier: 'National' }
   ];
 
   return (

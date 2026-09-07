@@ -11,6 +11,7 @@ import { CitizenLogin } from './pages/CitizenLogin';
 import { CitizenConsent } from './pages/CitizenConsent';
 import { CitizenProfileSetup } from './pages/CitizenProfileSetup';
 import { ScreeningIntro } from './pages/ScreeningIntro';
+import { ScreeningChat } from './pages/ScreeningChat';
 import { ScreeningFlow } from './pages/ScreeningFlow';
 import { ScreeningReview } from './pages/ScreeningReview';
 import { AssessmentResult } from './pages/AssessmentResult';
@@ -34,6 +35,8 @@ const MainScreenRouter: React.FC = () => {
         return <CitizenProfileSetup />;
       case 'screening-intro':
         return <ScreeningIntro />;
+      case 'screening-chat':
+        return <ScreeningChat />;
       case 'screening':
         return <ScreeningFlow />;
       case 'screening-review':

@@ -291,7 +291,7 @@ export const CitizenProfileSetup: React.FC = () => {
                 navigateTo('citizen-consent', 'push_back');
                 return;
               }
-              navigateTo('screening', 'push');
+              navigateTo('screening-intro', 'push');
             }}
             className="w-full sm:w-auto px-6 py-2.5 bg-[#002046] hover:bg-[#1b365d] text-white font-bold text-sm rounded-lg shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
           >

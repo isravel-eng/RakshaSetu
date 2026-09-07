@@ -318,28 +318,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   /**
    * Simulates an incoming case event (e.g. Hearing Postponed 04 Sep -> 18 Sep 2026)
-   * Triggers the full end-to-end continuous monitoring chain.
+   * and runs the full end-to-end continuous monitoring chain:
+   *   NHAA case update -> backend case event -> rebuild case + check-in history
+   *   -> existing ML service -> new stress score -> compare with previous
+   *   -> counsellor alert only on material escalation.
+   *
+   * Respects consent: if the victim revoked NHAA authorization, no new NHAA
+   * data is processed and monitoring stays paused/revoked.
    */
-  const simulateNhaaCaseUpdate = (customEvent?: Partial<NHAACaseEvent>) => {
+  const simulateNhaaCaseUpdate = async (customEvent?: Partial<NHAACaseEvent>) => {
+    if (!hasConsented || !citizenProfile.consentNhaaAccess) {
+      setDemoToast({
+        message: 'NHAA access is revoked or not authorized. Monitoring paused — no case data processed without explicit consent.',
+        type: 'info'
+      });
+      return;
+    }
+
     setIsNhaaSyncing(true);
     const updatedNhaa = simulateNhaaCaseEvent(DEFAULT_NHAA_CASE_REF, customEvent);
     setNhaaData(updatedNhaa);
 
-    // Trigger AI Risk Engine Reprocessing
-    const { updatedCase, newAlert } = reprocessCaseOnNhaaUpdate(
+    // Trigger risk reprocessing (real ML service when a backend session exists,
+    // existing local engine otherwise).
+    const {
+      updatedCase,
+      newAlert,
+      alertCreated,
+      mlSource,
+      riskDelta,
+      previousScore,
+      currentScore
+    } = await reprocessCaseOnNhaaUpdate(
       'RS-2026-00124',
       updatedNhaa,
       citizenProfile,
       screeningAnswers
     );
 
+    const hearingDate = updatedNhaa.events[0]?.hearingDate || '18 Sep 2026';
+    const riskLabel = updatedCase.riskLevel;
+    const deltaText = riskDelta > 0 ? `+${riskDelta}` : `${riskDelta}`;
+    const escalatedText = alertCreated
+      ? 'Counsellor Alert Generated'
+      : 'No material escalation — monitoring continued';
+
     setCases((prev) => upsertSubmittedCase(prev, updatedCase));
-    setAlerts((prev) => [newAlert, ...prev.filter((a) => a.id !== newAlert.id)]);
-    setActiveAlert(newAlert);
+    if (alertCreated && newAlert) {
+      setAlerts((prev) => [newAlert, ...prev.filter((a) => a.id !== newAlert.id)]);
+      setActiveAlert(newAlert);
+    }
     setIsNhaaSyncing(false);
 
     setDemoToast({
-      message: `⚡ NHAA CHANGE DETECTED: Hearing postponed to 18 Sep 2026 → Risk escalated (58 → 72 HIGH) → Counsellor Alert Generated!`,
+      message: `⚡ NHAA CHANGE DETECTED: Hearing postponed to ${hearingDate} → Risk reassessed (${previousScore} → ${currentScore} ${riskLabel}, Δ${deltaText}) via ${mlSource === 'ML' ? 'RakshaSetu ML service' : 'local engine'} → ${escalatedText}!`,
       type: 'alert'
     });
   };
@@ -373,6 +405,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     persistCounsellorAlerts([]);
     clearCitizenSession();
     clearConsent();
+    sessionStorage.removeItem('rakshasetu.backendToken');
+    sessionStorage.removeItem('rakshasetu.backendCaseId');
+    sessionStorage.removeItem('rakshasetu.backendCaseNumber');
+    sessionStorage.removeItem('rakshasetu.lastPrediction');
     setCases(INITIAL_CASES);
     setCurrentCaseId('RS-2026-00124');
     setCitizenProfile(DEFAULT_PROFILE);

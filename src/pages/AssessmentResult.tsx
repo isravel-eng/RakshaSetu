@@ -57,6 +57,46 @@ export const AssessmentResult: React.FC = () => {
         </div>
       </div>
 
+      {/* Assessment Pipeline Layers */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-xl bg-white border border-[#aec7f7]/60 shadow-2xs">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#002046]">
+            <span className="w-7 h-7 rounded-lg bg-[#d6e3ff] text-[#002046] flex items-center justify-center">
+              <span className="material-symbols-outlined text-base">forum</span>
+            </span>
+            <span>1. OpenAI Conversational Assessment</span>
+          </div>
+          <p className="text-[11px] text-[#545f72] mt-1.5 leading-snug">
+            Natural-language conversation conducted by OpenAI — understands the victim's responses and extracts the
+            structured assessment signals. OpenAI never scores stress.
+          </p>
+        </div>
+        <div className="p-3.5 rounded-xl bg-white border border-[#aec7f7]/60 shadow-2xs">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#002046]">
+            <span className="w-7 h-7 rounded-lg bg-[#002046] text-white flex items-center justify-center">
+              <span className="material-symbols-outlined text-base">psychology</span>
+            </span>
+            <span>2. RakshaSetu ML Risk Engine</span>
+          </div>
+          <p className="text-[11px] text-[#545f72] mt-1.5 leading-snug">
+            The existing ML service is the authoritative stress/risk predictor — it produces the 0-100 dynamic score,
+            risk level, trend and factors from the full chronological check-in history.
+          </p>
+        </div>
+        <div className="p-3.5 rounded-xl bg-white border border-emerald-300/60 shadow-2xs">
+          <div className="flex items-center gap-2 text-xs font-bold text-emerald-900">
+            <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+              <span className="material-symbols-outlined text-base">medical_services</span>
+            </span>
+            <span>3. Human Counsellor Review</span>
+          </div>
+          <p className="text-[11px] text-[#545f72] mt-1.5 leading-snug">
+            A Tele-MANAS counsellor reviews the AI recommendation and makes the final support decision. The human
+            decision always remains separate and authoritative.
+          </p>
+        </div>
+      </div>
+
       {/* Follow-up & Support Status Banner (if validated) */}
       {isValidated && (
         <div className="p-4 bg-emerald-50 border-2 border-emerald-300 rounded-xl flex items-center justify-between gap-4 flex-wrap shadow-xs">
@@ -97,7 +137,7 @@ export const AssessmentResult: React.FC = () => {
           {/* Left: Score Dial Card */}
           <div className="p-6 rounded-xl bg-gradient-to-br from-[#f7f9fb] to-[#eceef0] border border-[#c4c6cf] text-center flex flex-col items-center justify-center space-y-3">
             <span className="text-xs font-bold text-[#545f72] uppercase tracking-wider">
-              Distress Severity Score
+              Dynamic Stress Score
             </span>
             <div className="relative flex items-center justify-center">
               <div
@@ -154,7 +194,7 @@ export const AssessmentResult: React.FC = () => {
             </div>
 
             <p className="text-[11px] text-[#545f72] max-w-xs">
-              Combined psychological signals & NHAA judicial lifecycle context.
+              ML-engine prediction (0-100) from combined psychological signals & NHAA judicial lifecycle context.
             </p>
           </div>
 
@@ -188,12 +228,30 @@ export const AssessmentResult: React.FC = () => {
               </div>
             </div>
 
-            {/* AI Confidence & Metrics */}
+            {/* Real ML Metrics Strip */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 text-xs">
               <div className="p-2.5 rounded-lg bg-[#f7f9fb] border border-[#eceef0]">
-                <span className="text-[10px] text-[#74777f] font-mono block">AI Triage Confidence</span>
+                <span className="text-[10px] text-[#74777f] font-mono block">ML Confidence</span>
                 <span className="font-bold text-[#002046] font-mono">
-                  {currentCase.aiAssessment.confidenceScore}% (HIGH)
+                  {currentCase.aiAssessment.confidenceScore}% ({currentCase.aiAssessment.confidenceLevel || 'HIGH'})
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[#f7f9fb] border border-[#eceef0]">
+                <span className="text-[10px] text-[#74777f] font-mono block">ML Trend</span>
+                <span className={`font-bold font-mono capitalize ${(currentCase.aiAssessment.trend || 'stable').includes('worsen') ? 'text-[#d83a56]' : 'text-emerald-800'}`}>
+                  {currentCase.aiAssessment.trend || 'stable/improving'}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[#f7f9fb] border border-[#eceef0]">
+                <span className="text-[10px] text-[#74777f] font-mono block">Model Version</span>
+                <span className="font-bold text-[#002046] font-mono">
+                  {currentCase.aiAssessment.modelVersion || 'distress-risk-v1'}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-[#f7f9fb] border border-[#eceef0]">
+                <span className="text-[10px] text-[#74777f] font-mono block">Human Review Required</span>
+                <span className={`font-bold ${currentCase.aiAssessment.requiresHumanReview ? 'text-[#ba1a1a]' : 'text-emerald-800'}`}>
+                  {currentCase.aiAssessment.requiresHumanReview ? 'YES — Counsellor' : 'No'}
                 </span>
               </div>
               <div className="p-2.5 rounded-lg bg-[#f7f9fb] border border-[#eceef0]">
@@ -202,11 +260,48 @@ export const AssessmentResult: React.FC = () => {
                   {isValidated ? 'Validated & Signed' : 'Mandatory Protocol'}
                 </span>
               </div>
-              <div className="p-2.5 rounded-lg bg-[#f7f9fb] border border-[#eceef0] col-span-2 sm:col-span-1">
+              <div className="p-2.5 rounded-lg bg-[#f7f9fb] border border-[#eceef0]">
                 <span className="text-[10px] text-[#74777f] font-mono block">Continuous Monitoring</span>
                 <span className="font-bold text-emerald-800">Active (24x7 Stream)</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Real ML Risk Detail Strip */}
+      <div className="bg-white rounded-xl border border-[#c4c6cf] shadow-2xs p-5">
+        <div className="flex items-center gap-2 border-b border-[#eceef0] pb-2.5 mb-3">
+          <span className="material-symbols-outlined text-[#002046]">memory</span>
+          <h3 className="font-bold text-sm text-[#002046]">
+            ML Engine Output — RakshaSetu Risk Service
+          </h3>
+          <span className="ml-auto text-[10px] font-mono bg-[#d6e3ff] text-[#002046] px-2 py-0.5 rounded font-bold">
+            {currentCase.aiAssessment.modelVersion || 'distress-risk-v1'}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div className="p-2.5 rounded-lg bg-[#f7f9fb] border border-[#eceef0]">
+            <span className="text-[10px] text-[#74777f] font-mono block">Dynamic Stress Score</span>
+            <span className="text-lg font-extrabold font-mono text-[#002046]">{currentCase.distressScore}<span className="text-[11px] text-[#74777f]">/100</span></span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-[#f7f9fb] border border-[#eceef0]">
+            <span className="text-[10px] text-[#74777f] font-mono block">Risk Level</span>
+            <span className="font-bold font-mono text-[#d83a56]">{currentCase.riskLevel}</span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-[#f7f9fb] border border-[#eceef0]">
+            <span className="text-[10px] text-[#74777f] font-mono block">Trend</span>
+            <span className={`font-bold font-mono capitalize ${(currentCase.aiAssessment.trend || '').includes('worsen') ? 'text-[#d83a56]' : 'text-emerald-800'}`}>
+              {currentCase.aiAssessment.trend || 'stable/improving'}
+            </span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-[#f7f9fb] border border-[#eceef0]">
+            <span className="text-[10px] text-[#74777f] font-mono block">Urgent Probability</span>
+            <span className="font-bold font-mono text-[#002046]">
+              {currentCase.aiAssessment.urgentProbability != null
+                ? `${Math.round(currentCase.aiAssessment.urgentProbability * 100)}%`
+                : 'n/a'}
+            </span>
           </div>
         </div>
       </div>

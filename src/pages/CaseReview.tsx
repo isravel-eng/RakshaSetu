@@ -250,6 +250,34 @@ export const CaseReview: React.FC = () => {
               {currentCase.aiAssessment.explanation}
             </p>
 
+            {/* Real ML Output Metadata */}
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div className="p-2 rounded-lg bg-white/80 border border-[#aec7f7]/50">
+                <span className="text-[10px] uppercase font-bold text-[#545f72] block">ML Trend</span>
+                <span className={`font-bold font-mono capitalize ${(currentCase.aiAssessment.trend || '').includes('worsen') ? 'text-[#d83a56]' : 'text-emerald-800'}`}>
+                  {currentCase.aiAssessment.trend || 'stable/improving'}
+                </span>
+              </div>
+              <div className="p-2 rounded-lg bg-white/80 border border-[#aec7f7]/50">
+                <span className="text-[10px] uppercase font-bold text-[#545f72] block">Confidence</span>
+                <span className="font-bold font-mono text-[#002046]">
+                  {currentCase.aiAssessment.confidenceScore}% ({currentCase.aiAssessment.confidenceLevel || 'HIGH'})
+                </span>
+              </div>
+              <div className="p-2 rounded-lg bg-white/80 border border-[#aec7f7]/50">
+                <span className="text-[10px] uppercase font-bold text-[#545f72] block">Model Version</span>
+                <span className="font-bold font-mono text-[#002046]">
+                  {currentCase.aiAssessment.modelVersion || 'distress-risk-v1'}
+                </span>
+              </div>
+              <div className="p-2 rounded-lg bg-white/80 border border-[#aec7f7]/50">
+                <span className="text-[10px] uppercase font-bold text-[#545f72] block">Human Review</span>
+                <span className={`font-bold ${currentCase.aiAssessment.requiresHumanReview ? 'text-[#ba1a1a]' : 'text-emerald-800'}`}>
+                  {currentCase.aiAssessment.requiresHumanReview ? 'REQUIRED' : 'Not required'}
+                </span>
+              </div>
+            </div>
+
             {/* Recommendation Box */}
             <div className="p-3 rounded-lg bg-white border border-[#aec7f7] text-xs space-y-1">
               <span className="font-bold text-[#002046] block">

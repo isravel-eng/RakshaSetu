@@ -10,6 +10,7 @@ import {
 import { INITIAL_CASES } from '../data/initialData';
 import { readJson, storageKeys, writeJson } from './storage';
 import { evaluateRisk } from './riskEngine';
+import { predictionToRiskResult, reprocessCase } from './backendApi';
 import { DEFAULT_NHAA_CASE_REF, getConsentedCaseData, loadNhaaData } from './nhaaService';
 
 const DEMO_CASE_ID = 'RS-2026-00124';
@@ -202,15 +203,181 @@ export function upsertSubmittedCase(
 
 /**
  * Re-evaluates case risk when an incoming NHAA case update or event is detected.
+ *
+ * When a real backend session exists, the updated case event is posted to the
+ * backend, the case context + full chronological check-in history is rebuilt,
+ * and the EXISTING ML service produces the new stress score. The alert is
+ * created only on material escalation (human review required, risk-tier
+ * escalation, or a score increase beyond the backend threshold).
+ *
+ * Without a backend session (offline demo), the existing local risk engine is
+ * used as a fallback so the prototype keeps working.
  */
-export function reprocessCaseOnNhaaUpdate(
+export async function reprocessCaseOnNhaaUpdate(
   caseId: string,
   updatedNhaaData: NHAACaseData,
   profile?: CitizenProfile,
   answers?: ScreeningAnswers
-): { updatedCase: CaseReviewData; newAlert: CounsellorAlert } {
+): Promise<{
+  updatedCase: CaseReviewData;
+  newAlert: CounsellorAlert | null;
+  alertCreated: boolean;
+  mlSource: 'ML' | 'LOCAL';
+  riskDelta: number;
+  previousScore: number;
+  currentScore: number;
+}> {
   const allCases = loadCases();
   const currentCase = allCases.find((c) => c.caseId === caseId) || INITIAL_CASES[0];
+
+  const previousScore = currentCase.distressScore;
+  const previousRisk = currentCase.riskLevel;
+  const nowIso = new Date().toISOString();
+
+  // 1) Try the real backend + ML service first.
+  const token = sessionStorage.getItem('rakshasetu.backendToken');
+  const backendCaseId = sessionStorage.getItem('rakshasetu.backendCaseId');
+  if (token && backendCaseId) {
+    try {
+      const latestEvent = updatedNhaaData.events && updatedNhaaData.events[0];
+      const remote = await reprocessCase(token, Number(backendCaseId), {
+        event_type: 'HEARING_POSTPONED',
+        event_date: latestEvent?.timestamp || nowIso,
+        details_json: {
+          postponement_days: Number(latestEvent?.delayDays || 14),
+          previous_hearing_date: latestEvent?.previousHearingDate || '2026-09-04',
+          new_hearing_date: latestEvent?.hearingDate || '2026-09-18',
+          reason: 'NHAA registry: hearing rescheduled (judicial delay).',
+        },
+      });
+
+      const remoteRisk = predictionToRiskResult(remote.prediction);
+      if (remoteRisk) {
+        const currentScore = Math.round(remote.current_score ?? remoteRisk.score);
+        const riskDelta = remote.risk_delta ?? currentScore - previousScore;
+        const newRiskEntry = {
+          id: `RH-${Date.now()}`,
+          timestamp: nowIso,
+          score: currentScore,
+          riskLevel: remoteRisk.riskLevel as RiskLevel,
+          priority: remoteRisk.priority as CaseReviewData['priority'],
+          trigger: 'NHAA_EVENT_DETECTED' as const,
+          triggerLabel: `NHAA Event: Hearing Rescheduled (${latestEvent?.delayDays || 14}-Day Judicial Delay) — ML ${remote.prediction?.model_version || 'unknown'}`,
+          reason: `NHAA registry update (hearing postponed) was reprocessed by the RakshaSetu ML service. Score: ${previousScore} (${previousRisk}) -> ${currentScore} (${remoteRisk.riskLevel}). Risk delta: ${riskDelta > 0 ? '+' : ''}${riskDelta}.`,
+          contributingFactors: remoteRisk.contributingFactors,
+          protectiveFactors: remoteRisk.protectiveFactors,
+          nhaaEventRef: latestEvent?.id || 'EVT-003'
+        };
+
+        const newAlert: CounsellorAlert = {
+          id: `ALT-${Date.now()}`,
+          caseId: currentCase.caseId,
+          nhaaCaseReference: updatedNhaaData.nhaaCaseReference,
+          victimName: currentCase.citizenName,
+          district: currentCase.district,
+          timestamp: nowIso,
+          previousScore,
+          previousRisk,
+          currentScore,
+          currentRisk: remoteRisk.riskLevel as RiskLevel,
+          trigger: 'NHAA Case Event Detected: Hearing Rescheduled',
+          reason: remote.escalated
+            ? `Material escalation detected by ML: ${previousScore} (${previousRisk}) -> ${currentScore} (${remoteRisk.riskLevel}). Human review: ${remote.prediction?.human_review_required ? 'required' : 'recommended'}.`
+            : `ML reassessment completed: ${previousScore} (${previousRisk}) -> ${currentScore} (${remoteRisk.riskLevel}). No material escalation threshold crossed.`,
+          actionRequired: 'Human counsellor review required. Tele-counselling outreach indicated.',
+          isAcknowledged: false,
+          isReviewed: false
+        };
+
+        const newTimelineEvents = [
+          {
+            id: `TL-${Date.now()}-1`,
+            stage: 'NHAA_EVENT_DETECTED' as const,
+            title: 'NHAA Case Event Detected: Hearing Postponed',
+            description: `NHAA Monitor captured judicial notice: Hearing date postponed from ${latestEvent?.previousHearingDate || '04 Sep 2026'} to ${latestEvent?.hearingDate || '18 Sep 2026'}.`,
+            timestamp: nowIso,
+            actor: 'NHAA_SYSTEM' as const,
+            badgeType: 'alert' as const
+          },
+          {
+            id: `TL-${Date.now()}-2`,
+            stage: 'RISK_REASSESSMENT' as const,
+            title: `Risk Reassessment Completed: ${currentScore}/100 (${remoteRisk.riskLevel}) — ML`,
+            description: `Existing ML service re-evaluated the rebuilt case context. Score ${previousScore} -> ${currentScore} (delta ${riskDelta > 0 ? '+' : ''}${riskDelta}).`,
+            timestamp: nowIso,
+            actor: 'AI_ENGINE' as const,
+            badgeType: 'alert' as const
+          },
+          {
+            id: `TL-${Date.now()}-3`,
+            stage: 'COUNSELLOR_ALERT' as const,
+            title: remote.escalated ? 'High-Risk Counsellor Alert Dispatched to Tele-MANAS' : 'Monitoring Continued — No Escalation Alert',
+            description: remote.escalated
+              ? 'Priority clinical notification sent to Tele-MANAS triage queue for mandatory human validation.'
+              : 'New prediction stored. No material escalation threshold was crossed, so no alert was dispatched.',
+            timestamp: nowIso,
+            actor: 'SYSTEM_MONITOR' as const,
+            badgeType: remote.escalated ? ('alert' as const) : ('info' as const)
+          }
+        ];
+
+        const updatedCase: CaseReviewData = {
+          ...currentCase,
+          updatedAt: nowIso,
+          distressScore: currentScore,
+          riskLevel: remoteRisk.riskLevel as RiskLevel,
+          priority: remoteRisk.priority as CaseReviewData['priority'],
+          status: 'PENDING_REVIEW',
+          lastSynchronized: nowIso,
+          lastEventSummary: `Hearing Postponed to ${latestEvent?.hearingDate || '18 Sep 2026'} (${latestEvent?.delayDays || 14}-day delay)`,
+          nhaaData: updatedNhaaData,
+          riskHistory: [newRiskEntry, ...currentCase.riskHistory],
+          alerts: remote.escalated ? [newAlert, ...currentCase.alerts] : currentCase.alerts,
+          timeline: [...newTimelineEvents, ...currentCase.timeline],
+          aiAssessment: {
+            ...currentCase.aiAssessment,
+            distressCategory: remoteRisk.distressCategory,
+            confidenceScore: remoteRisk.confidenceScore,
+            confidenceLevel: remoteRisk.confidence as typeof currentCase.aiAssessment.confidenceLevel,
+            priority: remoteRisk.priority as typeof currentCase.aiAssessment.priority,
+            emergencyFlag: remoteRisk.emergencyFlag,
+            recommendedTier: remoteRisk.recommendedTier,
+            recommendedAction: remoteRisk.recommendedAction,
+            keyRiskFactors: remoteRisk.contributingFactors,
+            protectiveFactors: remoteRisk.protectiveFactors,
+            explanation: remoteRisk.explanation,
+            requiresHumanReview: remoteRisk.requiresHumanReview,
+            disclaimer: remoteRisk.disclaimer,
+            trend: remoteRisk.trend ?? undefined,
+            modelVersion: remoteRisk.modelVersion ?? undefined,
+            urgentProbability: remoteRisk.urgentProbability ?? undefined,
+            mlRiskLevel: remoteRisk.mlRiskLevel ?? undefined,
+          }
+        };
+
+        const updatedCases = upsertSubmittedCase(allCases, updatedCase);
+        persistCases(updatedCases);
+
+        if (remote.escalated) {
+          const existingAlerts = loadCounsellorAlerts();
+          persistCounsellorAlerts([newAlert, ...existingAlerts.filter((a) => a.id !== newAlert.id)]);
+        }
+
+        return {
+          updatedCase,
+          newAlert: remote.escalated ? newAlert : null,
+          alertCreated: remote.escalated,
+          mlSource: 'ML',
+          riskDelta,
+          previousScore,
+          currentScore,
+        };
+      }
+    } catch (backendError) {
+      // Fall through to the local risk engine; do not break the offline demo.
+      console.warn('Backend ML reprocess unavailable, falling back to local risk engine:', backendError);
+    }
+  }
   const activeProfile = profile || loadCitizenProfile({
     fullName: currentCase.citizenName,
     phone: currentCase.citizenPhone,
@@ -241,12 +408,9 @@ export function reprocessCaseOnNhaaUpdate(
     voiceNoteRecorded: false
   });
 
-  const previousScore = currentCase.distressScore;
-  const previousRisk = currentCase.riskLevel;
-
-  // Run AI Risk Engine with updated NHAA data
+  // 2) Fallback: run the existing local AI Risk Engine with updated NHAA data.
   const newRiskResult = evaluateRisk(activeAnswers, activeProfile, updatedNhaaData);
-  const nowIso = new Date().toISOString();
+  const riskDelta = newRiskResult.score - previousScore;
 
   // Create new Risk History Entry
   const newRiskEntry = {
@@ -256,8 +420,8 @@ export function reprocessCaseOnNhaaUpdate(
     riskLevel: newRiskResult.riskLevel,
     priority: newRiskResult.priority,
     trigger: 'NHAA_EVENT_DETECTED' as const,
-    triggerLabel: 'NHAA Event: Hearing Rescheduled (14-Day Judicial Delay)',
-    reason: `Judicial delay detected on NHAA registry (Hearing postponed from 04 Sep to 18 Sep 2026). Risk score increased from ${previousScore} (${previousRisk}) to ${newRiskResult.score} (${newRiskResult.riskLevel}).`,
+    triggerLabel: 'NHAA Event: Hearing Rescheduled (14-Day Judicial Delay) — Local Engine',
+    reason: `Judicial delay detected on NHAA registry (Hearing postponed from 04 Sep to 18 Sep 2026). Risk score changed from ${previousScore} (${previousRisk}) to ${newRiskResult.score} (${newRiskResult.riskLevel}).`,
     contributingFactors: newRiskResult.contributingFactors,
     protectiveFactors: newRiskResult.protectiveFactors,
     nhaaEventRef: 'EVT-003'
@@ -276,7 +440,7 @@ export function reprocessCaseOnNhaaUpdate(
     currentScore: newRiskResult.score,
     currentRisk: newRiskResult.riskLevel,
     trigger: 'NHAA Case Event Detected: Hearing Rescheduled',
-    reason: 'Updated case information from NHAA registry changed the distress-risk assessment from MODERATE to HIGH.',
+    reason: `Updated case information from NHAA registry changed the distress-risk assessment from ${previousScore} (${previousRisk}) to ${newRiskResult.score} (${newRiskResult.riskLevel}).`,
     actionRequired: 'Human counsellor review required. Tele-counselling outreach indicated.',
     isAcknowledged: false,
     isReviewed: false
@@ -327,6 +491,7 @@ export function reprocessCaseOnNhaaUpdate(
     alerts: [newAlert, ...currentCase.alerts],
     timeline: [...newTimelineEvents, ...currentCase.timeline],
     aiAssessment: {
+      ...currentCase.aiAssessment,
       distressCategory: newRiskResult.distressCategory,
       confidenceScore: newRiskResult.confidenceScore,
       confidenceLevel: newRiskResult.confidence,
@@ -349,7 +514,15 @@ export function reprocessCaseOnNhaaUpdate(
   const existingAlerts = loadCounsellorAlerts();
   persistCounsellorAlerts([newAlert, ...existingAlerts.filter((a) => a.id !== newAlert.id)]);
 
-  return { updatedCase, newAlert };
+  return {
+    updatedCase,
+    newAlert,
+    alertCreated: true,
+    mlSource: 'LOCAL',
+    riskDelta,
+    previousScore,
+    currentScore: newRiskResult.score,
+  };
 }
 
 /**
